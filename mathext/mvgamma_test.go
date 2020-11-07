@@ -10,6 +10,7 @@ import (
 )
 
 func TestMvLgamma(t *testing.T) {
+	t.Parallel()
 	// Values compared with scipy
 	for i, test := range []struct {
 		v   float64
@@ -20,7 +21,7 @@ func TestMvLgamma(t *testing.T) {
 		{3, 1, 0.69314718055994529},
 	} {
 		ans := MvLgamma(test.v, test.dim)
-		if math.Abs(test.ans-ans) > 1e-14 {
+		if math.Abs(test.ans-ans) > 1e-13 {
 			t.Errorf("Case %v. got=%v want=%v.", i, ans, test.ans)
 		}
 	}

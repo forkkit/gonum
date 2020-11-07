@@ -10,10 +10,11 @@ import (
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestBinomialProb(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-10
 	for i, tt := range []struct {
 		k    float64
@@ -59,13 +60,14 @@ func TestBinomialProb(t *testing.T) {
 	} {
 		b := Binomial{N: tt.n, P: tt.p}
 		got := b.Prob(tt.k)
-		if !floats.EqualWithinRel(got, tt.want, tol) {
+		if !scalar.EqualWithinRel(got, tt.want, tol) {
 			t.Errorf("test-%d: got=%e. want=%e\n", i, got, tt.want)
 		}
 	}
 }
 
 func TestBinomialCDF(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-10
 	for i, tt := range []struct {
 		k    float64
@@ -74,6 +76,7 @@ func TestBinomialCDF(t *testing.T) {
 		want float64
 	}{
 		// Cumulative probabilities computed with SciPy
+		{-1, 10, 0.5, 0},
 		{0, 10, 0.5, 9.765625e-04},
 		{1, 10, 0.5, 1.0742187499999998e-02},
 		{2, 10, 0.5, 5.468749999999999e-02},
@@ -100,13 +103,19 @@ func TestBinomialCDF(t *testing.T) {
 	} {
 		b := Binomial{N: tt.n, P: tt.p}
 		got := b.CDF(tt.k)
-		if !floats.EqualWithinRel(got, tt.want, tol) {
+		if !scalar.EqualWithinRel(got, tt.want, tol) {
+			t.Errorf("test-%d: got=%e. want=%e\n", i, got, tt.want)
+		}
+		got = b.Survival(tt.k)
+		want := 1 - tt.want
+		if !scalar.EqualWithinRel(got, want, tol) {
 			t.Errorf("test-%d: got=%e. want=%e\n", i, got, tt.want)
 		}
 	}
 }
 
 func TestBinomial(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, b := range []Binomial{
 		{100, 0.5, src},
@@ -115,6 +124,9 @@ func TestBinomial(t *testing.T) {
 		{9000, 0.102, src},
 		{1e6, 0.001, src},
 		{25, 0.02, src},
+		{25, 0.99, src},
+		{25, 0.46, src},
+		{25, 0.55, src},
 		{3, 0.8, src},
 	} {
 		testBinomial(t, b, i)
@@ -133,4 +145,9 @@ func testBinomial(t *testing.T, b Binomial, i int) {
 	checkMean(t, i, x, b, tol)
 	checkVarAndStd(t, i, x, b, tol)
 	checkExKurtosis(t, i, x, b, 7e-2)
+	checkSkewness(t, i, x, b, tol)
+
+	if b.NumParameters() != 2 {
+		t.Errorf("Wrong number of parameters")
+	}
 }

@@ -5,14 +5,17 @@
 package distuv
 
 import (
+	"math"
 	"sort"
 	"testing"
 
 	"golang.org/x/exp/rand"
-	"gonum.org/v1/gonum/floats"
+
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestParetoProb(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		x, xm, alpha, want float64
 	}{
@@ -53,13 +56,14 @@ func TestParetoProb(t *testing.T) {
 		{5, 1, 3, 0.0048},
 	} {
 		pdf := Pareto{test.xm, test.alpha, nil}.Prob(test.x)
-		if !floats.EqualWithinAbsOrRel(pdf, test.want, 1e-10, 1e-10) {
+		if !scalar.EqualWithinAbsOrRel(pdf, test.want, 1e-10, 1e-10) {
 			t.Errorf("Pdf mismatch, x = %v, xm = %v, alpha = %v. Got %v, want %v", test.x, test.xm, test.alpha, pdf, test.want)
 		}
 	}
 }
 
 func TestParetoCDF(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		x, xm, alpha, want float64
 	}{
@@ -130,13 +134,14 @@ func TestParetoCDF(t *testing.T) {
 		{10, 1, 3, 0.999},
 	} {
 		cdf := Pareto{test.xm, test.alpha, nil}.CDF(test.x)
-		if !floats.EqualWithinAbsOrRel(cdf, test.want, 1e-10, 1e-10) {
+		if !scalar.EqualWithinAbsOrRel(cdf, test.want, 1e-10, 1e-10) {
 			t.Errorf("CDF mismatch, x = %v, xm = %v, alpha = %v. Got %v, want %v", test.x, test.xm, test.alpha, cdf, test.want)
 		}
 	}
 }
 
 func TestPareto(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, p := range []Pareto{
 		{1, 10, src},
@@ -147,16 +152,55 @@ func TestPareto(t *testing.T) {
 }
 
 func testPareto(t *testing.T, p Pareto, i int) {
-	tol := 1e-2
-	const n = 1e6
-	const bins = 50
+	const (
+		tol  = 1e-2
+		n    = 1e6
+		bins = 50
+	)
 	x := make([]float64, n)
 	generateSamples(x, p)
 	sort.Float64s(x)
 
+	checkQuantileCDFSurvival(t, i, x, p, 1e-3)
 	testRandLogProbContinuous(t, i, 0, x, p, tol, bins)
 	checkMean(t, i, x, p, tol)
 	checkVarAndStd(t, i, x, p, tol)
 	checkExKurtosis(t, i, x, p, 7e-2)
-	checkProbContinuous(t, i, x, p, 1e-3)
+	checkProbContinuous(t, i, x, p.Xm, math.Inf(1), p, 1e-10)
+	checkEntropy(t, i, x, p, 1e-2)
+	checkMedian(t, i, x, p, 1e-3)
+
+	if p.Xm != p.Mode() {
+		t.Errorf("Mismatch in mode value: got %v, want %g", p.Mode(), p.Xm)
+	}
+	if p.NumParameters() != 2 {
+		t.Errorf("Mismatch in NumParameters: got %v, want 2", p.NumParameters())
+	}
+	surv := p.Survival(p.Xm - 0.0001)
+	if surv != 1 {
+		t.Errorf("Mismatch in Survival below Xm: got %v, want 1", surv)
+	}
+}
+
+func TestParetoNotExists(t *testing.T) {
+	t.Parallel()
+	p := Pareto{0, 4, nil}
+	exKurt := p.ExKurtosis()
+	if !math.IsNaN(exKurt) {
+		t.Errorf("Expected NaN excess kurtosis for Alpha == 4, got %v", exKurt)
+	}
+	p = Pareto{0, 1, nil}
+	mean := p.Mean()
+	if !math.IsInf(mean, 1) {
+		t.Errorf("Expected mean == +Inf for Alpha == 1, got %v", mean)
+	}
+	p = Pareto{0, 2, nil}
+	variance := p.Variance()
+	if !math.IsInf(variance, 1) {
+		t.Errorf("Expected variance == +Inf for Alpha == 1, got %v", variance)
+	}
+	stdDev := p.StdDev()
+	if !math.IsInf(stdDev, 1) {
+		t.Errorf("Expected standard deviation == +Inf for Alpha == 1, got %v", stdDev)
+	}
 }

@@ -68,9 +68,8 @@ If it is large, such as suggesting a new repository, sub-repository, or interfac
 
 ### Your First Code Contribution
 
-If you are a new contributor, thank you! Before your first merge, you will need to be added to the [CONTRIBUTORS](https://github.com/gonum/license/blob/master/CONTRIBUTORS) and [AUTHORS](https://github.com/gonum/license/blob/master/AUTHORS) file.
-Open a pull request adding yourself to them.
-All Gonum code follows the BSD license in the [license document](https://github.com/gonum/license/blob/master/LICENSE).
+If you are a new contributor, thank you! Before your first merge, you will need to be added to the [CONTRIBUTORS](https://github.com/gonum/gonum/blob/master/CONTRIBUTORS) and [AUTHORS](https://github.com/gonum/gonum/blob/master/AUTHORS) file; after your contribution has been accepted you will be asked to open a pull request adding yourself to them.
+All Gonum code follows the BSD license in the [license document](https://github.com/gonum/gonum/blob/master/LICENSE).
 We prefer that code contributions do not come with additional licensing.
 For exceptions, added code must also follow a BSD license.
 
@@ -85,7 +84,7 @@ Benchmarks are optional for new features, but if you are submitting a pull reque
 
 ### Code Review
 
-If you are a contributor, please be welcoming to new contributors.  [Here](http://sarah.thesharps.us/2014/09/01/the-gentle-art-of-patch-review/) is a good guide.
+If you are a contributor, please be welcoming to new contributors.  [Here](https://sage.thesharps.us/2014/09/01/the-gentle-art-of-patch-review/) is a good guide.
 
 There are several terms code reviews may use that you should become familiar with.
 

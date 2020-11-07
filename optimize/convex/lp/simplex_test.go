@@ -9,13 +9,14 @@ import (
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 	"gonum.org/v1/gonum/mat"
 )
 
 const convergenceTol = 1e-10
 
 func TestSimplex(t *testing.T) {
+	t.Parallel()
 	// First test specific inputs. These were collected from failures
 	// during randomized testing.
 	// TODO(btracey): Test specific problems with known solutions.
@@ -244,7 +245,7 @@ func testSimplex(t *testing.T, initialBasic []int, c []float64, a mat.Matrix, b 
 			t.Errorf("Primal feasible but dual errored: %s", errDual)
 		}
 		dualOpt *= -1
-		if !floats.EqualWithinAbsOrRel(dualOpt, primalOpt, convergenceTol, convergenceTol) {
+		if !scalar.EqualWithinAbsOrRel(dualOpt, primalOpt, convergenceTol, convergenceTol) {
 			t.Errorf("Primal and dual value mismatch. Primal %v, dual %v.", primalOpt, dualOpt)
 		}
 	}

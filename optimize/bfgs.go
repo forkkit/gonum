@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	_ Method      = (*BFGS)(nil)
-	_ localMethod = (*BFGS)(nil)
+	_ Method          = (*BFGS)(nil)
+	_ localMethod     = (*BFGS)(nil)
+	_ NextDirectioner = (*BFGS)(nil)
 )
 
 // BFGS implements the Broyden–Fletcher–Goldfarb–Shanno optimization method. It
@@ -90,8 +91,8 @@ func (b *BFGS) InitDirection(loc *Location, dir []float64) (stepSize float64) {
 
 	x := mat.NewVecDense(dim, loc.X)
 	grad := mat.NewVecDense(dim, loc.Gradient)
-	b.x.CloneVec(x)
-	b.grad.CloneVec(grad)
+	b.x.CloneFromVec(x)
+	b.grad.CloneFromVec(grad)
 
 	b.y.Reset()
 	b.s.Reset()

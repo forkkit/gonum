@@ -553,7 +553,7 @@ func (BrownBadlyScaled) Grad(grad, x []float64) {
 
 	f1 := x[0] - 1e6
 	f2 := x[1] - 2e-6
-	f3 := x[0]*x[1] - 2
+	f3 := float64(x[0]*x[1]) - 2 // Prevent fused multiply subtract.
 	grad[0] = 2*f1 + 2*f3*x[1]
 	grad[1] = 2*f2 + 2*f3*x[0]
 }
@@ -789,12 +789,13 @@ func (ExtendedRosenbrock) Grad(grad, x []float64) {
 	for i := range grad {
 		grad[i] = 0
 	}
+	// Prevent fused multiply add and fused multiply subtract.
 	for i := 0; i < dim-1; i++ {
-		grad[i] -= 2 * (1 - x[i])
-		grad[i] -= 400 * (x[i+1] - x[i]*x[i]) * x[i]
+		grad[i] -= float64(2 * (1 - x[i]))
+		grad[i] -= float64(400 * (x[i+1] - float64(x[i]*x[i])) * x[i])
 	}
 	for i := 1; i < dim; i++ {
-		grad[i] += 200 * (x[i] - x[i-1]*x[i-1])
+		grad[i] += float64(200 * (x[i] - float64(x[i-1]*x[i-1])))
 	}
 }
 

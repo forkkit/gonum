@@ -8,11 +8,12 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
 func TestFixed(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		f        func(float64) float64
 		min, max float64
@@ -64,11 +65,11 @@ func TestFixed(t *testing.T) {
 	} {
 		for j, n := range test.n {
 			ans := Fixed(test.f, test.min, test.max, n, nil, 0)
-			if !floats.EqualWithinAbsOrRel(ans, test.ans, test.tol[j], test.tol[j]) {
+			if !scalar.EqualWithinAbsOrRel(ans, test.ans, test.tol[j], test.tol[j]) {
 				t.Errorf("Case %d, n = %d: Mismatch. Want %v, got %v", i, n, test.ans, ans)
 			}
 			ans2 := Fixed(test.f, test.min, test.max, n, nil, 3)
-			if !floats.EqualWithinAbsOrRel(ans2, test.ans, test.tol[j], test.tol[j]) {
+			if !scalar.EqualWithinAbsOrRel(ans2, test.ans, test.tol[j], test.tol[j]) {
 				t.Errorf("Case %d, n = %d: Mismatch concurrent. Want %v, got %v", i, n, test.ans, ans)
 			}
 		}
@@ -85,6 +86,7 @@ func (l legendreNonSingle) FixedLocations(x, weight []float64, min, max float64)
 }
 
 func TestFixedNonSingle(t *testing.T) {
+	t.Parallel()
 	// TODO(btracey): Add tests with infinite bounds when we have native support
 	// for indefinite integrals.
 	for i, test := range []struct {
@@ -114,11 +116,11 @@ func TestFixedNonSingle(t *testing.T) {
 	} {
 		for j, n := range test.n {
 			ans := Fixed(test.f, test.min, test.max, n, legendreNonSingle{}, 0)
-			if !floats.EqualWithinAbsOrRel(ans, test.ans, test.tol[j], test.tol[j]) {
+			if !scalar.EqualWithinAbsOrRel(ans, test.ans, test.tol[j], test.tol[j]) {
 				t.Errorf("Case = %d, n = %d: Mismatch. Want %v, got %v", i, n, test.ans, ans)
 			}
 			ans2 := Fixed(test.f, test.min, test.max, n, legendreNonSingle{}, 3)
-			if !floats.EqualWithinAbsOrRel(ans2, test.ans, test.tol[j], test.tol[j]) {
+			if !scalar.EqualWithinAbsOrRel(ans2, test.ans, test.tol[j], test.tol[j]) {
 				t.Errorf("Case = %d, n = %d: Mismatch concurrent. Want %v, got %v", i, n, test.ans, ans)
 			}
 		}

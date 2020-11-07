@@ -148,6 +148,11 @@ func TestDggsvp3(t *testing.T) {
 	testlapack.Dggsvp3Test(t, impl)
 }
 
+func TestDgtsv(t *testing.T) {
+	t.Parallel()
+	testlapack.DgtsvTest(t, impl)
+}
+
 func TestDlabrd(t *testing.T) {
 	t.Parallel()
 	testlapack.DlabrdTest(t, impl)
@@ -183,6 +188,11 @@ func TestDlags2(t *testing.T) {
 	testlapack.Dlags2Test(t, impl)
 }
 
+func TestDlagtm(t *testing.T) {
+	t.Parallel()
+	testlapack.DlagtmTest(t, impl)
+}
+
 func TestDlahqr(t *testing.T) {
 	t.Parallel()
 	testlapack.DlahqrTest(t, impl)
@@ -201,6 +211,11 @@ func TestDlaln2(t *testing.T) {
 func TestDlange(t *testing.T) {
 	t.Parallel()
 	testlapack.DlangeTest(t, impl)
+}
+
+func TestDlangt(t *testing.T) {
+	t.Parallel()
+	testlapack.DlangtTest(t, impl)
 }
 
 func TestDlapy2(t *testing.T) {
@@ -266,6 +281,11 @@ func TestDlanst(t *testing.T) {
 func TestDlansy(t *testing.T) {
 	t.Parallel()
 	testlapack.DlansyTest(t, impl)
+}
+
+func TestDlantb(t *testing.T) {
+	t.Parallel()
+	testlapack.DlantbTest(t, impl)
 }
 
 func TestDlantr(t *testing.T) {
@@ -543,6 +563,11 @@ func TestDtgsja(t *testing.T) {
 	testlapack.DtgsjaTest(t, impl)
 }
 
+func TestDtbtrs(t *testing.T) {
+	t.Parallel()
+	testlapack.DtbtrsTest(t, impl)
+}
+
 func TestDtrcon(t *testing.T) {
 	t.Parallel()
 	testlapack.DtrconTest(t, impl)
@@ -566,6 +591,11 @@ func TestDtrti2(t *testing.T) {
 func TestDtrtri(t *testing.T) {
 	t.Parallel()
 	testlapack.DtrtriTest(t, impl)
+}
+
+func TestDtrtrs(t *testing.T) {
+	t.Parallel()
+	testlapack.DtrtrsTest(t, impl)
 }
 
 func TestIladlc(t *testing.T) {

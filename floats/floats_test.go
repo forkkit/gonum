@@ -1,6 +1,6 @@
 // Copyright ©2013 The Gonum Authors. All rights reserved.
 // Use of this code is governed by a BSD-style
-// license that can be found in the LICENSE file
+// license that can be found in the LICENSE file.
 
 package floats
 
@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"golang.org/x/exp/rand"
+
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 const (
@@ -31,7 +33,7 @@ func areSlicesSame(t *testing.T, truth, comp []float64, str string) {
 	ok := len(truth) == len(comp)
 	if ok {
 		for i, a := range truth {
-			if !EqualWithinAbsOrRel(a, comp[i], EqTolerance, EqTolerance) && !same(a, comp[i]) {
+			if !scalar.EqualWithinAbsOrRel(a, comp[i], EqTolerance, EqTolerance) && !scalar.Same(a, comp[i]) {
 				ok = false
 				break
 			}
@@ -40,10 +42,6 @@ func areSlicesSame(t *testing.T, truth, comp []float64, str string) {
 	if !ok {
 		t.Errorf(str+". Expected %v, returned %v", truth, comp)
 	}
-}
-
-func same(a, b float64) bool {
-	return a == b || (math.IsNaN(a) && math.IsNaN(b))
 }
 
 func Panics(fun func()) (b bool) {
@@ -58,6 +56,7 @@ func Panics(fun func()) (b bool) {
 }
 
 func TestAdd(t *testing.T) {
+	t.Parallel()
 	a := []float64{1, 2, 3}
 	b := []float64{4, 5, 6}
 	c := []float64{7, 8, 9}
@@ -79,6 +78,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddTo(t *testing.T) {
+	t.Parallel()
 	a := []float64{1, 2, 3}
 	b := []float64{4, 5, 6}
 	truth := []float64{5, 7, 9}
@@ -98,6 +98,7 @@ func TestAddTo(t *testing.T) {
 }
 
 func TestAddConst(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	c := 6.0
 	truth := []float64{9, 10, 7, 13, 11}
@@ -106,6 +107,7 @@ func TestAddConst(t *testing.T) {
 }
 
 func TestAddScaled(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	alpha := 6.0
 	dst := []float64{1, 2, 3, 4, 5}
@@ -124,6 +126,7 @@ func TestAddScaled(t *testing.T) {
 }
 
 func TestAddScaledTo(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	alpha := 6.0
 	y := []float64{1, 2, 3, 4, 5}
@@ -153,6 +156,7 @@ func TestAddScaledTo(t *testing.T) {
 }
 
 func TestArgsort(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	inds := make([]int, len(s))
 
@@ -177,6 +181,7 @@ func TestArgsort(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	f := func(v float64) bool { return v > 3.5 }
 	truth := 3
@@ -187,6 +192,7 @@ func TestCount(t *testing.T) {
 }
 
 func TestCumProd(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	receiver := make([]float64, len(s))
 	result := CumProd(receiver, s)
@@ -209,6 +215,7 @@ func TestCumProd(t *testing.T) {
 }
 
 func TestCumSum(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	receiver := make([]float64, len(s))
 	result := CumSum(receiver, s)
@@ -231,6 +238,7 @@ func TestCumSum(t *testing.T) {
 }
 
 func TestDistance(t *testing.T) {
+	t.Parallel()
 	norms := []float64{1, 2, 4, math.Inf(1)}
 	slices := []struct {
 		s []float64
@@ -269,12 +277,13 @@ func TestDistance(t *testing.T) {
 }
 
 func TestDiv(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{5, 12, 27}
 	s2 := []float64{1, 2, 3}
 	ans := []float64{5, 6, 9}
 	Div(s1, s2)
 	if !EqualApprox(s1, ans, EqTolerance) {
-		t.Errorf("Mul doesn't give correct answer")
+		t.Errorf("Div doesn't give correct answer")
 	}
 	s1short := []float64{1}
 	if !Panics(func() { Div(s1short, s2) }) {
@@ -287,6 +296,7 @@ func TestDiv(t *testing.T) {
 }
 
 func TestDivTo(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{5, 12, 27}
 	s1orig := []float64{5, 12, 27}
 	s2 := []float64{1, 2, 3}
@@ -325,6 +335,7 @@ func TestDivTo(t *testing.T) {
 }
 
 func TestDot(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3, 4}
 	s2 := []float64{-3, 4, 5, -6}
 	truth := -4.0
@@ -340,6 +351,7 @@ func TestDot(t *testing.T) {
 }
 
 func TestEquals(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3, 4}
 	s2 := []float64{1, 2, 3, 4}
 	if !Equal(s1, s2) {
@@ -355,6 +367,7 @@ func TestEquals(t *testing.T) {
 }
 
 func TestEqualApprox(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3, 4}
 	s2 := []float64{1, 2, 3, 4 + 1e-10}
 	if EqualApprox(s1, s2, 1e-13) {
@@ -377,6 +390,7 @@ func TestEqualApprox(t *testing.T) {
 }
 
 func TestEqualFunc(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3, 4}
 	s2 := []float64{1, 2, 3, 4}
 	eq := func(x, y float64) bool { return x == y }
@@ -393,6 +407,7 @@ func TestEqualFunc(t *testing.T) {
 }
 
 func TestEqualsRelative(t *testing.T) {
+	t.Parallel()
 	equalityTests := []struct {
 		a, b  float64
 		tol   float64
@@ -480,42 +495,15 @@ func TestEqualsRelative(t *testing.T) {
 		if ts.tol == 0 {
 			ts.tol = 1e-5
 		}
-		if equal := EqualWithinRel(ts.a, ts.b, ts.tol); equal != ts.equal {
+		if equal := scalar.EqualWithinRel(ts.a, ts.b, ts.tol); equal != ts.equal {
 			t.Errorf("Relative equality of %g and %g with tolerance %g returned: %v. Expected: %v",
 				ts.a, ts.b, ts.tol, equal, ts.equal)
 		}
 	}
 }
 
-func nextAfterN(x, y float64, n int) float64 {
-	for i := 0; i < n; i++ {
-		x = math.Nextafter(x, y)
-	}
-	return x
-}
-
-func TestEqualsULP(t *testing.T) {
-	if f := 67329.242; !EqualWithinULP(f, nextAfterN(f, math.Inf(1), 10), 10) {
-		t.Errorf("Equal values returned as unequal")
-	}
-	if f := 67329.242; EqualWithinULP(f, nextAfterN(f, math.Inf(1), 5), 1) {
-		t.Errorf("Unequal values returned as equal")
-	}
-	if f := 67329.242; EqualWithinULP(nextAfterN(f, math.Inf(1), 5), f, 1) {
-		t.Errorf("Unequal values returned as equal")
-	}
-	if f := nextAfterN(0, math.Inf(1), 2); !EqualWithinULP(f, nextAfterN(f, math.Inf(-1), 5), 10) {
-		t.Errorf("Equal values returned as unequal")
-	}
-	if !EqualWithinULP(67329.242, 67329.242, 10) {
-		t.Errorf("Equal float64s not returned as equal")
-	}
-	if EqualWithinULP(1, math.NaN(), 10) {
-		t.Errorf("NaN returned as equal")
-	}
-}
-
 func TestEqualLengths(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3, 4}
 	s2 := []float64{1, 2, 3, 4}
 	s3 := []float64{1, 2, 3}
@@ -546,6 +534,7 @@ func eqIntSlice(one, two []int) string {
 }
 
 func TestFind(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	f := func(v float64) bool { return v > 3.5 }
 	allTrueInds := []int{1, 3, 4}
@@ -605,6 +594,7 @@ func TestFind(t *testing.T) {
 }
 
 func TestHasNaN(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		s   []float64
 		ans bool
@@ -630,6 +620,7 @@ func TestHasNaN(t *testing.T) {
 }
 
 func TestLogSpan(t *testing.T) {
+	t.Parallel()
 	receiver1 := make([]float64, 6)
 	truth := []float64{0.001, 0.01, 0.1, 1, 10, 100}
 	receiver2 := LogSpan(receiver1, 0.001, 100)
@@ -657,6 +648,7 @@ func TestLogSpan(t *testing.T) {
 }
 
 func TestLogSumExp(t *testing.T) {
+	t.Parallel()
 	s := []float64{1, 2, 3, 4, 5}
 	val := LogSumExp(s)
 	// http://www.wolframalpha.com/input/?i=log%28exp%281%29+%2B+exp%282%29+%2B+exp%283%29+%2B+exp%284%29+%2B+exp%285%29%29
@@ -696,6 +688,7 @@ func TestLogSumExp(t *testing.T) {
 }
 
 func TestMaxAndIdx(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		in      []float64
 		wantIdx int
@@ -738,13 +731,17 @@ func TestMaxAndIdx(t *testing.T) {
 			t.Errorf("Wrong index "+test.desc+": got:%d want:%d", ind, test.wantIdx)
 		}
 		val := Max(test.in)
-		if !same(val, test.wantVal) {
+		if !scalar.Same(val, test.wantVal) {
 			t.Errorf("Wrong value "+test.desc+": got:%f want:%f", val, test.wantVal)
 		}
+	}
+	if !Panics(func() { MaxIdx([]float64{}) }) {
+		t.Errorf("Expected panic with zero length")
 	}
 }
 
 func TestMinAndIdx(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		in      []float64
 		wantIdx int
@@ -787,13 +784,17 @@ func TestMinAndIdx(t *testing.T) {
 			t.Errorf("Wrong index "+test.desc+": got:%d want:%d", ind, test.wantIdx)
 		}
 		val := Min(test.in)
-		if !same(val, test.wantVal) {
+		if !scalar.Same(val, test.wantVal) {
 			t.Errorf("Wrong value "+test.desc+": got:%f want:%f", val, test.wantVal)
 		}
+	}
+	if !Panics(func() { MinIdx([]float64{}) }) {
+		t.Errorf("Expected panic with zero length")
 	}
 }
 
 func TestMul(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3}
 	s2 := []float64{1, 2, 3}
 	ans := []float64{1, 4, 9}
@@ -812,6 +813,7 @@ func TestMul(t *testing.T) {
 }
 
 func TestMulTo(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3}
 	s1orig := []float64{1, 2, 3}
 	s2 := []float64{1, 2, 3}
@@ -849,69 +851,8 @@ func TestMulTo(t *testing.T) {
 	}
 }
 
-func TestNaNWith(t *testing.T) {
-	tests := []struct {
-		payload uint64
-		bits    uint64
-	}{
-		{0, math.Float64bits(0 / func() float64 { return 0 }())}, // Hide the division by zero from the compiler.
-		{1, math.Float64bits(math.NaN())},
-		{1954, 0x7ff80000000007a2}, // R NA.
-	}
-
-	for _, test := range tests {
-		nan := NaNWith(test.payload)
-		if !math.IsNaN(nan) {
-			t.Errorf("expected NaN value, got:%f", nan)
-		}
-
-		bits := math.Float64bits(nan)
-
-		// Strip sign bit.
-		const sign = 1 << 63
-		bits &^= sign
-		test.bits &^= sign
-
-		if bits != test.bits {
-			t.Errorf("expected NaN bit representation: got:%x want:%x", bits, test.bits)
-		}
-	}
-}
-
-func TestNaNPayload(t *testing.T) {
-	tests := []struct {
-		f       float64
-		payload uint64
-		ok      bool
-	}{
-		{0 / func() float64 { return 0 }(), 0, true}, // Hide the division by zero from the compiler.
-
-		// The following two line are written explicitly to defend against potential changes to math.Copysign.
-		{math.Float64frombits(math.Float64bits(math.NaN()) | (1 << 63)), 1, true},  // math.Copysign(math.NaN(), -1)
-		{math.Float64frombits(math.Float64bits(math.NaN()) &^ (1 << 63)), 1, true}, // math.Copysign(math.NaN(), 1)
-
-		{NaNWith(1954), 1954, true}, // R NA.
-
-		{math.Copysign(0, -1), 0, false},
-		{0, 0, false},
-		{math.Inf(-1), 0, false},
-		{math.Inf(1), 0, false},
-
-		{math.Float64frombits(0x7ff0000000000001), 0, false}, // Signalling NaN.
-	}
-
-	for _, test := range tests {
-		payload, ok := NaNPayload(test.f)
-		if payload != test.payload {
-			t.Errorf("expected NaN payload: got:%x want:%x", payload, test.payload)
-		}
-		if ok != test.ok {
-			t.Errorf("expected NaN status: got:%t want:%t", ok, test.ok)
-		}
-	}
-}
-
 func TestNearestIdx(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		in    []float64
 		query float64
@@ -1002,9 +943,13 @@ func TestNearestIdx(t *testing.T) {
 			t.Errorf(test.desc+": got:%d want:%d", ind, test.want)
 		}
 	}
+	if !Panics(func() { NearestIdx([]float64{}, 0) }) {
+		t.Errorf("Expected panic with zero length")
+	}
 }
 
 func TestNearestIdxForSpan(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		length int
 		lower  float64
@@ -1076,6 +1021,20 @@ func TestNearestIdxForSpan(t *testing.T) {
 			idx:    2,
 		},
 		{
+			length: 5,
+			lower:  math.Inf(-1),
+			upper:  math.Inf(1),
+			value:  math.Inf(-1),
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  math.Inf(-1),
+			upper:  math.Inf(1),
+			value:  math.Inf(1),
+			idx:    3,
+		},
+		{
 			length: 4,
 			lower:  math.Inf(-1),
 			upper:  math.Inf(1),
@@ -1110,14 +1069,130 @@ func TestNearestIdxForSpan(t *testing.T) {
 			value:  1,
 			idx:    0,
 		},
+		{
+			length: 5,
+			lower:  0,
+			upper:  1,
+			value:  math.NaN(),
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  math.NaN(),
+			upper:  1,
+			value:  0,
+			idx:    4,
+		},
+		{
+			length: 5,
+			lower:  math.Inf(-1),
+			upper:  1,
+			value:  math.Inf(-1),
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  math.Inf(-1),
+			upper:  1,
+			value:  0,
+			idx:    4,
+		},
+		{
+			length: 5,
+			lower:  math.Inf(1),
+			upper:  1,
+			value:  math.Inf(1),
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  math.Inf(1),
+			upper:  1,
+			value:  0,
+			idx:    4,
+		},
+		{
+			length: 5,
+			lower:  100,
+			upper:  math.Inf(-1),
+			value:  math.Inf(-1),
+			idx:    4,
+		},
+		{
+			length: 5,
+			lower:  100,
+			upper:  math.Inf(-1),
+			value:  200,
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  100,
+			upper:  math.Inf(1),
+			value:  math.Inf(1),
+			idx:    4,
+		},
+		{
+			length: 5,
+			lower:  100,
+			upper:  math.Inf(1),
+			value:  200,
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  -1,
+			upper:  2,
+			value:  math.Inf(-1),
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  -1,
+			upper:  2,
+			value:  math.Inf(1),
+			idx:    4,
+		},
+		{
+			length: 5,
+			lower:  1,
+			upper:  -2,
+			value:  math.Inf(-1),
+			idx:    4,
+		},
+		{
+			length: 5,
+			lower:  1,
+			upper:  -2,
+			value:  math.Inf(1),
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  2,
+			upper:  0,
+			value:  3,
+			idx:    0,
+		},
+		{
+			length: 5,
+			lower:  2,
+			upper:  0,
+			value:  -1,
+			idx:    4,
+		},
 	} {
 		if idx := NearestIdxForSpan(test.length, test.lower, test.upper, test.value); test.idx != idx {
 			t.Errorf("Case %v mismatch: Want: %v, Got: %v", i, test.idx, idx)
 		}
 	}
+	if !Panics(func() { NearestIdxForSpan(1, 0, 1, 0.5) }) {
+		t.Errorf("Expected panic for short span length")
+	}
 }
 
 func TestNorm(t *testing.T) {
+	t.Parallel()
 	s := []float64{-1, -3.4, 5, -6}
 	val := Norm(s, math.Inf(1))
 	truth := 6.0
@@ -1146,6 +1221,7 @@ func TestNorm(t *testing.T) {
 }
 
 func TestProd(t *testing.T) {
+	t.Parallel()
 	s := []float64{}
 	val := Prod(s)
 	if val != 1 {
@@ -1159,6 +1235,7 @@ func TestProd(t *testing.T) {
 }
 
 func TestReverse(t *testing.T) {
+	t.Parallel()
 	for _, s := range [][]float64{
 		{0},
 		{1, 0},
@@ -1175,133 +1252,8 @@ func TestReverse(t *testing.T) {
 	}
 }
 
-func TestRound(t *testing.T) {
-	for _, test := range []struct {
-		x    float64
-		prec int
-		want float64
-	}{
-		{x: 0, prec: 1, want: 0},
-		{x: math.Inf(1), prec: 1, want: math.Inf(1)},
-		{x: math.NaN(), prec: 1, want: math.NaN()},
-		{x: func() float64 { var f float64; return -f }(), prec: 1, want: 0},
-		{x: math.MaxFloat64 / 2, prec: 1, want: math.MaxFloat64 / 2},
-		{x: 1 << 64, prec: 1, want: 1 << 64},
-		{x: 454.4445, prec: 3, want: 454.445},
-		{x: 454.44445, prec: 4, want: 454.4445},
-		{x: 0.42499, prec: 4, want: 0.425},
-		{x: 0.42599, prec: 4, want: 0.426},
-		{x: 0.424999999999993, prec: 2, want: 0.42},
-		{x: 0.425, prec: 2, want: 0.43},
-		{x: 0.425000000000001, prec: 2, want: 0.43},
-		{x: 123.4244999999999, prec: 3, want: 123.424},
-		{x: 123.4245, prec: 3, want: 123.425},
-		{x: 123.4245000000001, prec: 3, want: 123.425},
-
-		{x: 454.45, prec: 0, want: 454},
-		{x: 454.45, prec: 1, want: 454.5},
-		{x: 454.45, prec: 2, want: 454.45},
-		{x: 454.45, prec: 3, want: 454.45},
-		{x: 454.445, prec: 0, want: 454},
-		{x: 454.445, prec: 1, want: 454.4},
-		{x: 454.445, prec: 2, want: 454.45},
-		{x: 454.445, prec: 3, want: 454.445},
-		{x: 454.445, prec: 4, want: 454.445},
-		{x: 454.55, prec: 0, want: 455},
-		{x: 454.55, prec: 1, want: 454.6},
-		{x: 454.55, prec: 2, want: 454.55},
-		{x: 454.55, prec: 3, want: 454.55},
-		{x: 454.455, prec: 0, want: 454},
-		{x: 454.455, prec: 1, want: 454.5},
-		{x: 454.455, prec: 2, want: 454.46},
-		{x: 454.455, prec: 3, want: 454.455},
-		{x: 454.455, prec: 4, want: 454.455},
-
-		// Negative precision.
-		{x: 454.45, prec: -1, want: 450},
-		{x: 454.45, prec: -2, want: 500},
-		{x: 500, prec: -3, want: 1000},
-		{x: 500, prec: -4, want: 0},
-		{x: 1500, prec: -3, want: 2000},
-		{x: 1500, prec: -4, want: 0},
-	} {
-		for _, sign := range []float64{1, -1} {
-			got := Round(sign*test.x, test.prec)
-			want := sign * test.want
-			if want == 0 {
-				want = 0
-			}
-			if (got != want || math.Signbit(got) != math.Signbit(want)) && !(math.IsNaN(got) && math.IsNaN(want)) {
-				t.Errorf("unexpected result for Round(%g, %d): got: %g, want: %g", sign*test.x, test.prec, got, want)
-			}
-		}
-	}
-}
-
-func TestRoundEven(t *testing.T) {
-	for _, test := range []struct {
-		x    float64
-		prec int
-		want float64
-	}{
-		{x: 0, prec: 1, want: 0},
-		{x: math.Inf(1), prec: 1, want: math.Inf(1)},
-		{x: math.NaN(), prec: 1, want: math.NaN()},
-		{x: func() float64 { var f float64; return -f }(), prec: 1, want: 0},
-		{x: math.MaxFloat64 / 2, prec: 1, want: math.MaxFloat64 / 2},
-		{x: 1 << 64, prec: 1, want: 1 << 64},
-		{x: 454.4445, prec: 3, want: 454.444},
-		{x: 454.44445, prec: 4, want: 454.4444},
-		{x: 0.42499, prec: 4, want: 0.425},
-		{x: 0.42599, prec: 4, want: 0.426},
-		{x: 0.424999999999993, prec: 2, want: 0.42},
-		{x: 0.425, prec: 2, want: 0.42},
-		{x: 0.425000000000001, prec: 2, want: 0.43},
-		{x: 123.4244999999999, prec: 3, want: 123.424},
-		{x: 123.4245, prec: 3, want: 123.424},
-		{x: 123.4245000000001, prec: 3, want: 123.425},
-
-		{x: 454.45, prec: 0, want: 454},
-		{x: 454.45, prec: 1, want: 454.4},
-		{x: 454.45, prec: 2, want: 454.45},
-		{x: 454.45, prec: 3, want: 454.45},
-		{x: 454.445, prec: 0, want: 454},
-		{x: 454.445, prec: 1, want: 454.4},
-		{x: 454.445, prec: 2, want: 454.44},
-		{x: 454.445, prec: 3, want: 454.445},
-		{x: 454.445, prec: 4, want: 454.445},
-		{x: 454.55, prec: 0, want: 455},
-		{x: 454.55, prec: 1, want: 454.6},
-		{x: 454.55, prec: 2, want: 454.55},
-		{x: 454.55, prec: 3, want: 454.55},
-		{x: 454.455, prec: 0, want: 454},
-		{x: 454.455, prec: 1, want: 454.5},
-		{x: 454.455, prec: 2, want: 454.46},
-		{x: 454.455, prec: 3, want: 454.455},
-		{x: 454.455, prec: 4, want: 454.455},
-
-		// Negative precision.
-		{x: 454.45, prec: -1, want: 450},
-		{x: 454.45, prec: -2, want: 500},
-		{x: 500, prec: -3, want: 0},
-		{x: 500, prec: -4, want: 0},
-		{x: 1500, prec: -3, want: 2000},
-		{x: 1500, prec: -4, want: 0},
-	} {
-		for _, sign := range []float64{1, -1} {
-			got := RoundEven(sign*test.x, test.prec)
-			want := sign * test.want
-			if want == 0 {
-				want = 0
-			}
-			if (got != want || math.Signbit(got) != math.Signbit(want)) && !(math.IsNaN(got) && math.IsNaN(want)) {
-				t.Errorf("unexpected result for RoundEven(%g, %d): got: %g, want: %g", sign*test.x, test.prec, got, want)
-			}
-		}
-	}
-}
-
 func TestSame(t *testing.T) {
+	t.Parallel()
 	s1 := []float64{1, 2, 3, 4}
 	s2 := []float64{1, 2, 3, 4}
 	if !Same(s1, s2) {
@@ -1327,6 +1279,7 @@ func TestSame(t *testing.T) {
 }
 
 func TestScale(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	c := 5.0
 	truth := []float64{15, 20, 5, 35, 25}
@@ -1335,6 +1288,7 @@ func TestScale(t *testing.T) {
 }
 
 func TestScaleTo(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	sCopy := make([]float64, len(s))
 	copy(sCopy, s)
@@ -1348,9 +1302,13 @@ func TestScaleTo(t *testing.T) {
 	if !Same(s, sCopy) {
 		t.Errorf("Source modified during call. Got %v, want %v", s, sCopy)
 	}
+	if !Panics(func() { ScaleTo(dst, 0, []float64{1}) }) {
+		t.Errorf("Expected panic with different slice lengths")
+	}
 }
 
 func TestSpan(t *testing.T) {
+	t.Parallel()
 	receiver1 := make([]float64, 5)
 	truth := []float64{1, 2, 3, 4, 5}
 	receiver2 := Span(receiver1, 1, 5)
@@ -1444,6 +1402,7 @@ func TestSpan(t *testing.T) {
 }
 
 func TestSub(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	v := []float64{1, 2, 3, 4, 5}
 	truth := []float64{2, 2, -2, 3, 0}
@@ -1456,6 +1415,7 @@ func TestSub(t *testing.T) {
 }
 
 func TestSubTo(t *testing.T) {
+	t.Parallel()
 	s := []float64{3, 4, 1, 7, 5}
 	v := []float64{1, 2, 3, 4, 5}
 	truth := []float64{2, 2, -2, 3, 0}
@@ -1476,6 +1436,7 @@ func TestSubTo(t *testing.T) {
 }
 
 func TestSum(t *testing.T) {
+	t.Parallel()
 	s := []float64{}
 	val := Sum(s)
 	if val != 0 {
@@ -1489,6 +1450,7 @@ func TestSum(t *testing.T) {
 }
 
 func TestWithin(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		s      []float64
 		v      float64
@@ -1563,6 +1525,53 @@ func TestWithin(t *testing.T) {
 		}
 		if idx != test.idx {
 			t.Errorf("Case %v: Idx mismatch. Want: %v, got: %v", i, test.idx, idx)
+		}
+	}
+}
+
+func TestSumCompensated(t *testing.T) {
+	t.Parallel()
+	k := 100000
+	s1 := make([]float64, 2*k+1)
+	for i := -k; i <= k; i++ {
+		s1[i+k] = 0.2 * float64(i)
+	}
+	s2 := make([]float64, k+1)
+	for i := 0; i < k; i++ {
+		s2[i] = 10. / float64(k)
+	}
+	s2[k] = -10
+
+	for i, test := range []struct {
+		s    []float64
+		want float64
+	}{
+		{
+			// Fails if we use simple Sum.
+			s:    s1,
+			want: 0,
+		},
+		{
+			// Fails if we use simple Sum.
+			s:    s2,
+			want: 0,
+		},
+		{
+			s:    []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+			want: 55,
+		},
+		{
+			s:    []float64{1.2e20, 0.1, -2.4e20, -0.1, 1.2e20, 0.2, 0.2},
+			want: 0.4,
+		},
+		{
+			s:    []float64{1, 1e100, 1, -1e100},
+			want: 2,
+		},
+	} {
+		got := SumCompensated(test.s)
+		if math.Abs(got-test.want) > EqTolerance {
+			t.Errorf("Wrong sum returned in test case %d. Want: %g, got: %g", i, test.want, got)
 		}
 	}
 }
@@ -1757,3 +1766,29 @@ func BenchmarkNorm2Small(b *testing.B)  { benchmarkNorm2(b, Small) }
 func BenchmarkNorm2Medium(b *testing.B) { benchmarkNorm2(b, Medium) }
 func BenchmarkNorm2Large(b *testing.B)  { benchmarkNorm2(b, Large) }
 func BenchmarkNorm2Huge(b *testing.B)   { benchmarkNorm2(b, Huge) }
+
+func benchmarkSumCompensated(b *testing.B, size int) {
+	s := randomSlice(size)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		SumCompensated(s)
+	}
+}
+
+func BenchmarkSumCompensatedSmall(b *testing.B)  { benchmarkSumCompensated(b, Small) }
+func BenchmarkSumCompensatedMedium(b *testing.B) { benchmarkSumCompensated(b, Medium) }
+func BenchmarkSumCompensatedLarge(b *testing.B)  { benchmarkSumCompensated(b, Large) }
+func BenchmarkSumCompensatedHuge(b *testing.B)   { benchmarkSumCompensated(b, Huge) }
+
+func benchmarkSum(b *testing.B, size int) {
+	s := randomSlice(size)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Sum(s)
+	}
+}
+
+func BenchmarkSumSmall(b *testing.B)  { benchmarkSum(b, Small) }
+func BenchmarkSumMedium(b *testing.B) { benchmarkSum(b, Medium) }
+func BenchmarkSumLarge(b *testing.B)  { benchmarkSum(b, Large) }
+func BenchmarkSumHuge(b *testing.B)   { benchmarkSum(b, Huge) }

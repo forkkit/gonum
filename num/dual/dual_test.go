@@ -9,7 +9,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 var formatTests = []struct {
@@ -34,6 +34,7 @@ var formatTests = []struct {
 }
 
 func TestFormat(t *testing.T) {
+	t.Parallel()
 	for _, test := range formatTests {
 		got := fmt.Sprintf(test.format, test.d)
 		if got != test.want {
@@ -234,6 +235,7 @@ var dualTests = []struct {
 }
 
 func TestDual(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 	for _, test := range dualTests {
 		for _, x := range test.x {
@@ -377,6 +379,7 @@ var powRealTests = []struct {
 }
 
 func TestPowReal(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 	for _, test := range powRealTests {
 		got := PowReal(test.d, test.p)
@@ -391,5 +394,5 @@ func sameDual(a, b Number, tol float64) bool {
 }
 
 func same(a, b, tol float64) bool {
-	return (math.IsNaN(a) && math.IsNaN(b)) || floats.EqualWithinAbsOrRel(a, b, tol, tol)
+	return (math.IsNaN(a) && math.IsNaN(b)) || scalar.EqualWithinAbsOrRel(a, b, tol, tol)
 }

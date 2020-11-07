@@ -12,17 +12,18 @@ import (
 )
 
 func TestMagneticConstantFormat(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		format string
 		want   string
 	}{
-		{"%v", "1.2566370614692394e-06 A^2 s^4 kg^-1 m^-3"},
+		{"%v", "1.2566370621238374e-06 A^2 s^4 kg^-1 m^-3"},
 		{"%.1v", "1e-06 A^2 s^4 kg^-1 m^-3"},
 		{"%50.1v", "                          1e-06 A^2 s^4 kg^-1 m^-3"},
-		{"%50v", "         1.2566370614692394e-06 A^2 s^4 kg^-1 m^-3"},
-		{"%1v", "1.2566370614692394e-06 A^2 s^4 kg^-1 m^-3"},
-		{"%#v", "constant.magneticConstantUnits(1.2566370614692394e-06)"},
-		{"%s", "%!s(constant.magneticConstantUnits=1.2566370614692394e-06 A^2 s^4 kg^-1 m^-3)"},
+		{"%50v", "         1.2566370621238374e-06 A^2 s^4 kg^-1 m^-3"},
+		{"%1v", "1.2566370621238374e-06 A^2 s^4 kg^-1 m^-3"},
+		{"%#v", "constant.magneticConstantUnits(1.2566370621238374e-06)"},
+		{"%s", "%!s(constant.magneticConstantUnits=1.2566370621238374e-06 A^2 s^4 kg^-1 m^-3)"},
 	} {
 		got := fmt.Sprintf(test.format, MagneticConstant)
 		if got != test.want {

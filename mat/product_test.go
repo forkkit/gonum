@@ -91,6 +91,8 @@ var productTests = []struct {
 }
 
 func TestProduct(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
 	for _, test := range productTests {
 		dimensions := test.factors
 		if dimensions == nil && test.n > 0 {
@@ -99,7 +101,7 @@ func TestProduct(t *testing.T) {
 				if i != 0 {
 					dimensions[i].r = dimensions[i-1].c
 				}
-				dimensions[i].c = rand.Intn(50) + 1
+				dimensions[i].c = rnd.Intn(50) + 1
 			}
 			dimensions[0].r = test.product.r
 			dimensions[test.n-1].c = test.product.c
@@ -108,7 +110,7 @@ func TestProduct(t *testing.T) {
 		for i, d := range dimensions {
 			data := make([]float64, d.r*d.c)
 			for i := range data {
-				data[i] = rand.Float64()
+				data[i] = rnd.Float64()
 			}
 			factors[i] = NewDense(d.r, d.c, data)
 		}
@@ -225,14 +227,15 @@ func expressionsFor(factors []dims) chan *node {
 
 // catalan returns the nth 0-based Catalan number.
 func catalan(n int) int {
-	p := 1
+	// Work in 64-bit integers since we overflow 32-bits for some tests.
+	p := int64(1)
 	for k := n + 1; k < 2*n+1; k++ {
-		p *= k
+		p *= int64(k)
 	}
 	for k := 2; k < n+2; k++ {
-		p /= k
+		p /= int64(k)
 	}
-	return p
+	return int(p)
 }
 
 // bestExpressonFor returns the lowest cost expression for the given expression

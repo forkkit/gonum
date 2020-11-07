@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 	"gonum.org/v1/gonum/spatial/r3"
 )
 
@@ -337,6 +337,7 @@ var volumeTests = []struct {
 }
 
 func TestVolume(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 
 	for _, test := range volumeTests {
@@ -367,10 +368,10 @@ func TestVolume(t *testing.T) {
 				}
 			})
 			center, mass := centerOfMass3(sub)
-			if !floats.EqualWithinAbsOrRel(center.X, b.center.X, tol, tol) || !floats.EqualWithinAbsOrRel(center.Y, b.center.Y, tol, tol) || !floats.EqualWithinAbsOrRel(center.Z, b.center.Z, tol, tol) {
+			if !scalar.EqualWithinAbsOrRel(center.X, b.center.X, tol, tol) || !scalar.EqualWithinAbsOrRel(center.Y, b.center.Y, tol, tol) || !scalar.EqualWithinAbsOrRel(center.Z, b.center.Z, tol, tol) {
 				t.Errorf("unexpected result for %q for center of mass: got:%f want:%f", test.name, b.center, center)
 			}
-			if !floats.EqualWithinAbsOrRel(mass, b.mass, tol, tol) {
+			if !scalar.EqualWithinAbsOrRel(mass, b.mass, tol, tol) {
 				t.Errorf("unexpected result for %q for total mass: got:%f want:%f", test.name, b.mass, mass)
 			}
 		})
@@ -405,6 +406,7 @@ func walkVolume(t *bucket, fn func(*bucket)) {
 }
 
 func TestVolumeForceOn(t *testing.T) {
+	t.Parallel()
 	const (
 		size = 1000
 		tol  = 1e-3
@@ -433,7 +435,9 @@ func TestVolumeForceOn(t *testing.T) {
 			continue
 		}
 		for _, theta := range []float64{0, 0.3, 0.6, 0.9} {
+			theta := theta
 			t.Run(fmt.Sprintf("%d-body/theta=%v", len(particles), theta), func(t *testing.T) {
+				t.Parallel()
 				var ssd, sd float64
 				var calls int
 				for i, p := range particles {

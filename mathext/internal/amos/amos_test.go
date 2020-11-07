@@ -6,12 +6,13 @@ package amos
 
 import (
 	"math"
+	"runtime"
 	"strconv"
 	"testing"
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 type input struct {
@@ -40,11 +41,11 @@ func randInput(rnd *rand.Rand) input {
 	}
 	is := make([]int, 3)
 	for j := range is {
-		is[j] = rand.Intn(1000)
+		is[j] = rnd.Intn(1000)
 	}
-	kode := rand.Intn(2) + 1
-	id := rand.Intn(2)
-	n := rand.Intn(5) + 1
+	kode := rnd.Intn(2) + 1
+	id := rnd.Intn(2)
+	n := rnd.Intn(5) + 1
 	yr := make([]float64, n+1)
 	yi := make([]float64, n+1)
 	for j := range yr {
@@ -61,6 +62,7 @@ func randInput(rnd *rand.Rand) input {
 const nInputs = 100000
 
 func TestAiry(t *testing.T) {
+	t.Parallel()
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -69,6 +71,11 @@ func TestAiry(t *testing.T) {
 }
 
 func TestZacai(t *testing.T) {
+	t.Parallel()
+	switch runtime.GOARCH {
+	case "arm64":
+		t.Skipf("skipping on GOARCH=%s", runtime.GOARCH)
+	}
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -77,6 +84,7 @@ func TestZacai(t *testing.T) {
 }
 
 func TestZbknu(t *testing.T) {
+	t.Parallel()
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -85,6 +93,7 @@ func TestZbknu(t *testing.T) {
 }
 
 func TestZasyi(t *testing.T) {
+	t.Parallel()
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -93,6 +102,11 @@ func TestZasyi(t *testing.T) {
 }
 
 func TestZseri(t *testing.T) {
+	t.Parallel()
+	switch runtime.GOARCH {
+	case "arm64":
+		t.Skipf("skipping on GOARCH=%s", runtime.GOARCH)
+	}
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -101,6 +115,7 @@ func TestZseri(t *testing.T) {
 }
 
 func TestZmlri(t *testing.T) {
+	t.Parallel()
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -109,6 +124,7 @@ func TestZmlri(t *testing.T) {
 }
 
 func TestZkscl(t *testing.T) {
+	t.Parallel()
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -117,6 +133,7 @@ func TestZkscl(t *testing.T) {
 }
 
 func TestZuchk(t *testing.T) {
+	t.Parallel()
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -125,6 +142,7 @@ func TestZuchk(t *testing.T) {
 }
 
 func TestZs1s2(t *testing.T) {
+	t.Parallel()
 	rnd := rand.New(rand.NewSource(1))
 	for i := 0; i < nInputs; i++ {
 		in := randInput(rnd)
@@ -332,7 +350,7 @@ func zseritest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi [
 	sameF64(t, "zseri elim", ELIMfort, ELIMamos)
 	sameF64(t, "zseri elim", ALIMfort, ALIMamos)
 
-	sameF64SApprox(t, "zseri yr", YRfort, YRamos, 1e-10)
+	sameF64SApprox(t, "zseri yr", YRfort, YRamos, 1e-9)
 	sameF64SApprox(t, "zseri yi", YIfort, YIamos, 1e-10)
 }
 
@@ -469,6 +487,7 @@ func zacaitest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi [
 }
 
 func sameF64(t *testing.T, str string, c, native float64) {
+	t.Helper()
 	if math.IsNaN(c) && math.IsNaN(native) {
 		return
 	}
@@ -481,16 +500,17 @@ func sameF64(t *testing.T, str string, c, native float64) {
 }
 
 func sameF64Approx(t *testing.T, str string, c, native, tol float64) {
+	t.Helper()
 	if math.IsNaN(c) && math.IsNaN(native) {
 		return
 	}
-	if floats.EqualWithinAbsOrRel(c, native, tol, tol) {
+	if scalar.EqualWithinAbsOrRel(c, native, tol, tol) {
 		return
 	}
 	// Have a much looser tolerance for correctness when the values are large.
 	// Floating point noise makes the relative tolerance difference greater for
 	// higher values.
-	if c > 1e200 && floats.EqualWithinAbsOrRel(c, native, 10, 10) {
+	if c > 1e200 && scalar.EqualWithinAbsOrRel(c, native, 10, 10) {
 		return
 	}
 	cb := math.Float64bits(c)
@@ -499,12 +519,14 @@ func sameF64Approx(t *testing.T, str string, c, native, tol float64) {
 }
 
 func sameInt(t *testing.T, str string, c, native int) {
+	t.Helper()
 	if c != native {
 		t.Errorf("Case %s: Int mismatch. c = %v, native = %v.", str, c, native)
 	}
 }
 
 func sameF64S(t *testing.T, str string, c, native []float64) {
+	t.Helper()
 	if len(c) != len(native) {
 		panic(str)
 	}
@@ -514,6 +536,7 @@ func sameF64S(t *testing.T, str string, c, native []float64) {
 }
 
 func sameF64SApprox(t *testing.T, str string, c, native []float64, tol float64) {
+	t.Helper()
 	if len(c) != len(native) {
 		panic(str)
 	}

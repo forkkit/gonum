@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 	"gonum.org/v1/gonum/spatial/r2"
 )
 
@@ -342,6 +342,7 @@ var planeTests = []struct {
 }
 
 func TestPlane(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 
 	for _, test := range planeTests {
@@ -372,10 +373,10 @@ func TestPlane(t *testing.T) {
 				}
 			})
 			center, mass := centerOfMass2(sub)
-			if !floats.EqualWithinAbsOrRel(center.X, tl.center.X, tol, tol) || !floats.EqualWithinAbsOrRel(center.Y, tl.center.Y, tol, tol) {
+			if !scalar.EqualWithinAbsOrRel(center.X, tl.center.X, tol, tol) || !scalar.EqualWithinAbsOrRel(center.Y, tl.center.Y, tol, tol) {
 				t.Errorf("unexpected result for %q for center of mass: got:%f want:%f", test.name, tl.center, center)
 			}
-			if !floats.EqualWithinAbsOrRel(mass, tl.mass, tol, tol) {
+			if !scalar.EqualWithinAbsOrRel(mass, tl.mass, tol, tol) {
 				t.Errorf("unexpected result for %q for total mass: got:%f want:%f", test.name, tl.mass, mass)
 			}
 		})
@@ -408,6 +409,7 @@ func walkPlane(t *tile, fn func(*tile)) {
 }
 
 func TestPlaneForceOn(t *testing.T) {
+	t.Parallel()
 	const (
 		size = 1000
 		tol  = 0.07
@@ -436,7 +438,9 @@ func TestPlaneForceOn(t *testing.T) {
 			continue
 		}
 		for _, theta := range []float64{0, 0.3, 0.6, 0.9} {
+			theta := theta
 			t.Run(fmt.Sprintf("%d-body/theta=%v", len(particles), theta), func(t *testing.T) {
+				t.Parallel()
 				var ssd, sd float64
 				var calls int
 				for i, p := range particles {

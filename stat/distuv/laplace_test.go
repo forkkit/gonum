@@ -10,10 +10,11 @@ import (
 	"testing"
 
 	"golang.org/x/exp/rand"
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestLaplaceProb(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
@@ -62,6 +63,7 @@ func TestLaplaceProb(t *testing.T) {
 }
 
 func TestLaplace(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, dist := range []Laplace{
 		{Mu: 0, Scale: 3, Src: src},
@@ -89,11 +91,28 @@ func testLaplace(t *testing.T, dist Laplace, i int) {
 	checkSkewness(t, i, x, dist, tol)
 	checkMedian(t, i, x, dist, tol)
 	checkQuantileCDFSurvival(t, i, x, dist, tol)
-	checkProbContinuous(t, i, x, dist, 1e-10)
+	checkProbContinuous(t, i, x, math.Inf(-1), math.Inf(1), dist, 1e-10)
 	checkProbQuantContinuous(t, i, x, dist, tol)
+	testDerivParam(t, &dist)
+
+	if dist.Mu != dist.Mode() {
+		t.Errorf("Mismatch in mode value, got: %v, want: %g", dist.Mode(), dist.Mu)
+	}
+	score := dist.Score(nil, dist.Mu)
+	if !math.IsNaN(score[0]) {
+		t.Errorf("Expected NaN score over Mu for x == Mu, got %v", score[0])
+	}
+	if score[1] != -1/dist.Scale {
+		t.Errorf("Mismatch in score over Scale value for x == Mu, got: %v, want: %g", score[1], -1/dist.Scale)
+	}
+	scoreInput := dist.ScoreInput(dist.Mu)
+	if !math.IsNaN(scoreInput) {
+		t.Errorf("Expected NaN input score for x == Mu, got %v", scoreInput)
+	}
 }
 
 func TestLaplaceFit(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		samples   []float64
 		weights   []float64
@@ -118,20 +137,33 @@ func TestLaplaceFit(t *testing.T) {
 			wantMu:    1,
 			wantScale: 0,
 		},
+		{
+			samples:   []float64{1, 1, 10},
+			weights:   []float64{1, 1, 0},
+			wantMu:    1,
+			wantScale: 0,
+		},
+		{
+			samples:   []float64{10},
+			weights:   nil,
+			wantMu:    10,
+			wantScale: 0,
+		},
 	}
 	for i, test := range cases {
 		d := Laplace{}
 		d.Fit(test.samples, test.weights)
-		if !floats.EqualWithinAbsOrRel(d.Mu, test.wantMu, 1e-10, 1e-10) {
+		if !scalar.EqualWithinAbsOrRel(d.Mu, test.wantMu, 1e-10, 1e-10) {
 			t.Errorf("unexpected location result for test %d: got:%f, want:%f", i, d.Mu, test.wantMu)
 		}
-		if !floats.EqualWithinAbsOrRel(d.Scale, test.wantScale, 1e-10, 1e-10) {
+		if !scalar.EqualWithinAbsOrRel(d.Scale, test.wantScale, 1e-10, 1e-10) {
 			t.Errorf("unexpected scale result for test %d: got:%f, want:%f", i, d.Scale, test.wantScale)
 		}
 	}
 }
 
 func TestLaplaceFitRandomSamples(t *testing.T) {
+	t.Parallel()
 
 	nSamples := 100000
 	src := rand.New(rand.NewSource(1))
@@ -146,10 +178,25 @@ func TestLaplaceFitRandomSamples(t *testing.T) {
 	}
 	le := Laplace{}
 	le.Fit(samples, nil)
-	if !floats.EqualWithinAbsOrRel(le.Mu, l.Mu, 1e-2, 1e-2) {
+	if !scalar.EqualWithinAbsOrRel(le.Mu, l.Mu, 1e-2, 1e-2) {
 		t.Errorf("unexpected location result for random test got:%f, want:%f", le.Mu, l.Mu)
 	}
-	if !floats.EqualWithinAbsOrRel(le.Scale, l.Scale, 1e-2, 1e-2) {
+	if !scalar.EqualWithinAbsOrRel(le.Scale, l.Scale, 1e-2, 1e-2) {
 		t.Errorf("unexpected scale result for random test got:%f, want:%f", le.Scale, l.Scale)
+	}
+}
+
+func TestLaplaceFitPanic(t *testing.T) {
+	t.Parallel()
+	l := Laplace{
+		Mu:    3,
+		Scale: 5,
+		Src:   nil,
+	}
+	if !panics(func() { l.Fit([]float64{1, 1, 1}, []float64{0.4, 0.4}) }) {
+		t.Errorf("Expected panic in Fit for len(sample) != len(weights)")
+	}
+	if !panics(func() { l.Fit([]float64{}, nil) }) {
+		t.Errorf("Expected panic in Fit for len(sample) == 0")
 	}
 }

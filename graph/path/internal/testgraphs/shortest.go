@@ -5,30 +5,22 @@
 package testgraphs
 
 import (
-	"fmt"
 	"math"
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
-func init() {
-	for _, test := range ShortestPathTests {
-		if len(test.WantPaths) != 1 && test.HasUniquePath {
-			panic(fmt.Sprintf("%q: bad shortest path test: non-unique paths marked unique", test.Name))
-		}
-	}
-}
-
 // ShortestPathTests are graphs used to test the static shortest path routines in path: BellmanFord,
 // DijkstraAllPaths, DijkstraFrom, FloydWarshall and Johnson, and the static degenerate case for the
 // dynamic shortest path routine in path/dynamic: DStarLite.
 var ShortestPathTests = []struct {
-	Name              string
-	Graph             func() graph.WeightedEdgeAdder
-	Edges             []simple.WeightedEdge
-	HasNegativeWeight bool
-	HasNegativeCycle  bool
+	Name                   string
+	Graph                  func() graph.WeightedEdgeAdder
+	Edges                  []simple.WeightedEdge
+	HasNegativeWeight      bool
+	HasNegativeCycle       bool
+	HasNegativeCycleInPath bool
 
 	Query         simple.Edge
 	Weight        float64
@@ -603,7 +595,81 @@ var ShortestPathTests = []struct {
 		HasNegativeWeight: true,
 		HasNegativeCycle:  true,
 
-		Query: simple.Edge{F: simple.Node(0), T: simple.Node(1)},
+		Query:                  simple.Edge{F: simple.Node(0), T: simple.Node(1)},
+		HasNegativeCycleInPath: true,
+		Weight:                 math.Inf(-1),
+		WantPaths: [][]int64{
+			{0, 1}, // One loop around negative cycle and no lead-in path.
+		},
+
+		NoPathFor: simple.Edge{F: simple.Node(2), T: simple.Node(3)},
+	},
+	{
+		Name:  "two path directed negative cycle",
+		Graph: func() graph.WeightedEdgeAdder { return simple.NewWeightedDirectedGraph(0, math.Inf(1)) },
+		Edges: []simple.WeightedEdge{
+			{F: simple.Node(0), T: simple.Node(1), W: 1},
+			{F: simple.Node(1), T: simple.Node(2), W: -1},
+			{F: simple.Node(2), T: simple.Node(1), W: -1},
+			{F: simple.Node(1), T: simple.Node(3), W: 1},
+			{F: simple.Node(0), T: simple.Node(4), W: 1},
+		},
+		HasNegativeWeight: true,
+		HasNegativeCycle:  true,
+
+		Query:                  simple.Edge{F: simple.Node(0), T: simple.Node(3)},
+		HasNegativeCycleInPath: true,
+		Weight:                 math.Inf(-1),
+		WantPaths: [][]int64{
+			{1, 2, 1, 3}, // One loop around negative cycle and no lead-in path.
+		},
+
+		NoPathFor: simple.Edge{F: simple.Node(5), T: simple.Node(6)},
+	},
+	{
+		Name:  "two path directed off-path negative cycle",
+		Graph: func() graph.WeightedEdgeAdder { return simple.NewWeightedDirectedGraph(0, math.Inf(1)) },
+		Edges: []simple.WeightedEdge{
+			{F: simple.Node(0), T: simple.Node(1), W: 1},
+			{F: simple.Node(1), T: simple.Node(2), W: -1},
+			{F: simple.Node(2), T: simple.Node(1), W: -1},
+			{F: simple.Node(1), T: simple.Node(3), W: 1},
+			{F: simple.Node(0), T: simple.Node(4), W: 10}, // Push search into negative cycle.
+		},
+		HasNegativeWeight: true,
+		HasNegativeCycle:  true,
+
+		Query:                  simple.Edge{F: simple.Node(0), T: simple.Node(4)},
+		HasNegativeCycleInPath: false,
+		Weight:                 10,
+		WantPaths: [][]int64{
+			{0, 4},
+		},
+		HasUniquePath: true,
+
+		NoPathFor: simple.Edge{F: simple.Node(5), T: simple.Node(6)},
+	},
+	{
+		Name:  "two path directed diamond negative cycle",
+		Graph: func() graph.WeightedEdgeAdder { return simple.NewWeightedDirectedGraph(0, math.Inf(1)) },
+		Edges: []simple.WeightedEdge{
+			{F: simple.Node(0), T: simple.Node(1), W: 1},
+			{F: simple.Node(1), T: simple.Node(2), W: -1},
+			{F: simple.Node(2), T: simple.Node(1), W: -1},
+			{F: simple.Node(1), T: simple.Node(3), W: 1},
+			{F: simple.Node(0), T: simple.Node(3), W: 10}, // Push search into negative cycle.
+		},
+		HasNegativeWeight: true,
+		HasNegativeCycle:  true,
+
+		Query:                  simple.Edge{F: simple.Node(0), T: simple.Node(3)},
+		HasNegativeCycleInPath: true,
+		Weight:                 math.Inf(-1),
+		WantPaths: [][]int64{
+			{1, 2, 1, 3}, // One loop around negative cycle and no lead-in path.
+		},
+
+		NoPathFor: simple.Edge{F: simple.Node(5), T: simple.Node(6)},
 	},
 	{
 		Name:  "wp graph negative", // http://en.wikipedia.org/w/index.php?title=Johnson%27s_algorithm&oldid=564595231

@@ -35,10 +35,23 @@ type Task struct {
 
 // Location represents a location in the optimization procedure.
 type Location struct {
-	X        []float64
-	F        float64
+	// X is the function input for the location.
+	X []float64
+	// F is the result of evaluating the function at X.
+	F float64
+	// Gradient holds the first-order partial derivatives
+	// of the function at X.
+	// The length of Gradient must match the length of X
+	// or be zero. If the capacity of Gradient is less
+	// than the length of X, a new slice will be allocated.
 	Gradient []float64
-	Hessian  *mat.SymDense
+	// Hessian holds the second-order partial derivatives
+	// of the function at X.
+	// The dimensions of Hessian must match the length of X
+	// or Hessian must be nil or empty. If Hessian is nil
+	// a new mat.SymDense will be allocated, if it is empty
+	// it will be resized to match the length of X.
+	Hessian *mat.SymDense
 }
 
 // Method is a type which can search for an optimum of an objective function.
@@ -398,7 +411,7 @@ func defaultFunctionConverge() *FunctionConverge {
 	}
 }
 
-// newLocation allocates a new locatian structure with an X field of the
+// newLocation allocates a new location structure with an X field of the
 // appropriate size.
 func newLocation(dim int) *Location {
 	return &Location{
@@ -478,19 +491,22 @@ func evaluate(p *Problem, loc *Location, op Operation, x []float64) {
 	}
 	if op&GradEvaluation != 0 {
 		// Make sure we have a destination in which to place the gradient.
-		// TODO(kortschak): Consider making this a check of len(loc.Gradient) != 0
-		// to allow reuse of the slice.
-		if loc.Gradient == nil {
-			loc.Gradient = make([]float64, len(x))
+		if len(loc.Gradient) == 0 {
+			if cap(loc.Gradient) < len(x) {
+				loc.Gradient = make([]float64, len(x))
+			} else {
+				loc.Gradient = loc.Gradient[:len(x)]
+			}
 		}
 		p.Grad(loc.Gradient, x)
 	}
 	if op&HessEvaluation != 0 {
 		// Make sure we have a destination in which to place the Hessian.
-		// TODO(kortschak): Consider making this a check of loc.Hessian.IsZero()
-		// to allow reuse of the matrix.
-		if loc.Hessian == nil {
+		switch {
+		case loc.Hessian == nil:
 			loc.Hessian = mat.NewSymDense(len(x), nil)
+		case loc.Hessian.IsEmpty():
+			loc.Hessian.ReuseAsSym(len(x))
 		}
 		p.Hess(loc.Hessian, x)
 	}

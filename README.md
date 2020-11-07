@@ -10,7 +10,7 @@ go get -u gonum.org/v1/gonum/...
 
 ## Supported Go versions
 
-Gonum supports and tests on the [two most recent Go releases](https://github.com/gonum/gonum/blob/master/.travis.yml#L6-L10) on Linux, macOS and Windows.
+Gonum supports and tests using the gc compiler on the [two most recent Go releases](https://github.com/gonum/gonum/blob/master/.travis.yml#L6-L10) on Linux (amd64 and arm64), macOS and Windows (both on amd64).
 
 ## Release schedule
 
@@ -30,15 +30,14 @@ Building Gonum applications will work without knowing how to use these tags, but
 
 The current list of non-internal tags is as follows:
 
-- appengine — do not use assembly or unsafe
-- safe — synonym for appengine
+- safe — do not use assembly or unsafe
 - bounds — use bounds checks even in internal calls
 - cblas — use CGO gonum.org/v1/netlib/blas/netlib BLAS implementation in tests (only in [mat package](https://godoc.org/gonum.org/v1/gonum/mat))
 - noasm — do not use assembly implementations
 - tomita — use [Tomita, Tanaka, Takahashi pivot choice](https://doi.org/10.1016%2Fj.tcs.2006.06.015) for maximimal clique calculation, otherwise use random pivot (only in [topo package](https://godoc.org/gonum.org/v1/gonum/graph/topo))
 
 
-## Issues
+## Issues [![TODOs](https://badgen.net/https/api.tickgit.com/badgen/github.com/gonum/gonum)](https://www.tickgit.com/browse?repo=github.com/gonum/gonum)
 
 If you find any bugs, feel free to file an issue on the github issue tracker. Discussions on API changes, added features, code review, or similar requests are preferred on the gonum-dev Google Group.
 

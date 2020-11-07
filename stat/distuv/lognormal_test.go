@@ -5,6 +5,7 @@
 package distuv
 
 import (
+	"math"
 	"sort"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func TestLognormal(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, dist := range []LogNormal{
 		{Mu: 0.1, Sigma: 0.3, Src: src},
@@ -33,13 +35,23 @@ func TestLognormal(t *testing.T) {
 		checkSkewness(t, i, x, dist, 5e-2)
 		checkMedian(t, i, x, dist, tol)
 		checkQuantileCDFSurvival(t, i, x, dist, tol)
-		checkProbContinuous(t, i, x, dist, 1e-10)
+		checkProbContinuous(t, i, x, 0, math.Inf(1), dist, 1e-10)
 		checkProbQuantContinuous(t, i, x, dist, tol)
+		checkMode(t, i, x, dist, 1e-2, 1e-2)
+
+		logProb := dist.LogProb(-0.0001)
+		if !math.IsInf(logProb, -1) {
+			t.Errorf("Expected LogProb == -Inf for x < 0, got %v", logProb)
+		}
+		if dist.NumParameters() != 2 {
+			t.Errorf("Mismatch in NumParameters: got %v, want 2", dist.NumParameters())
+		}
 	}
 }
 
 // See https://github.com/gonum/gonum/issues/577 for details.
 func TestLognormalIssue577(t *testing.T) {
+	t.Parallel()
 	x := 1.0e-16
 	max := 1.0e-295
 	cdf := LogNormal{Mu: 0, Sigma: 1}.CDF(x)

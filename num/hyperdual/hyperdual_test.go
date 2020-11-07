@@ -9,7 +9,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 var formatTests = []struct {
@@ -34,6 +34,7 @@ var formatTests = []struct {
 }
 
 func TestFormat(t *testing.T) {
+	t.Parallel()
 	for _, test := range formatTests {
 		got := fmt.Sprintf(test.format, test.h)
 		if got != test.want {
@@ -288,6 +289,7 @@ var hyperdualTests = []struct {
 }
 
 func TestHyperdual(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-14
 	for _, test := range hyperdualTests {
 		for _, x := range test.x {
@@ -454,6 +456,7 @@ var powRealTests = []struct {
 }
 
 func TestPowReal(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 	for _, test := range powRealTests {
 		got := PowReal(test.d, test.p)
@@ -470,5 +473,5 @@ func sameHyperdual(a, b Number, tol float64) bool {
 
 func same(a, b, tol float64) bool {
 	return (math.IsNaN(a) && math.IsNaN(b)) ||
-		(floats.EqualWithinAbsOrRel(a, b, tol, tol) && math.Float64bits(a)&(1<<63) == math.Float64bits(b)&(1<<63))
+		(scalar.EqualWithinAbsOrRel(a, b, tol, tol) && math.Float64bits(a)&(1<<63) == math.Float64bits(b)&(1<<63))
 }

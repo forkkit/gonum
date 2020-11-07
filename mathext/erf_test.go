@@ -8,9 +8,11 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestNormalQuantile(t *testing.T) {
+	t.Parallel()
 	// Values from https://www.johndcook.com/blog/normal_cdf_inverse/
 	p := []float64{
 		0.0000001,
@@ -50,7 +52,7 @@ func TestNormalQuantile(t *testing.T) {
 	}
 	for i, v := range p {
 		got := NormalQuantile(v)
-		if !floats.EqualWithinAbsOrRel(got, ans[i], 1e-10, 1e-10) {
+		if !scalar.EqualWithinAbsOrRel(got, ans[i], 1e-10, 1e-10) {
 			t.Errorf("Quantile mismatch. Case %d, want: %v, got: %v", i, ans[i], got)
 		}
 	}

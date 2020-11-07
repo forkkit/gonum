@@ -65,13 +65,15 @@ func (u *EadesR2) Update(g graph.Graph, layout LayoutR2) bool {
 		}
 		u.nodes = g.Nodes()
 		u.indexOf = make(map[int64]int, u.nodes.Len())
-		u.particles = make([]barneshut.Particle2, 0, u.nodes.Len())
-		u.forces = make([]r2.Vec, u.nodes.Len())
+		if u.nodes.Len() >= 0 {
+			u.particles = make([]barneshut.Particle2, 0, u.nodes.Len())
+		}
 		for u.nodes.Next() {
 			id := u.nodes.Node().ID()
 			u.indexOf[id] = len(u.particles)
 			u.particles = append(u.particles, eadesR2Node{id: id, pos: r2.Vec{X: rnd(), Y: rnd()}})
 		}
+		u.forces = make([]r2.Vec, len(u.particles))
 	}
 	u.nodes.Reset()
 
@@ -137,6 +139,9 @@ func (u *EadesR2) Update(g graph.Graph, layout LayoutR2) bool {
 			// Apply adjacent node attraction.
 			v := u.particles[yidx].Coord2().Sub(u.particles[xidx].Coord2())
 			f := v.Scale(weight(xid, yid) * math.Log(math.Hypot(v.X, v.Y)))
+			if math.IsInf(f.X, 0) || math.IsInf(f.Y, 0) {
+				return false
+			}
 			if math.Hypot(f.X, f.Y) > 1e-12 {
 				updated = true
 			}

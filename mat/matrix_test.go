@@ -10,9 +10,10 @@ import (
 	"reflect"
 	"testing"
 
+	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/blas"
 	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func panics(fn func()) (panicked bool, message string) {
@@ -59,6 +60,7 @@ func eye(n int) *Dense {
 }
 
 func TestCol(t *testing.T) {
+	t.Parallel()
 	for id, af := range [][][]float64{
 		{
 			{1, 2, 3},
@@ -132,6 +134,7 @@ func TestCol(t *testing.T) {
 }
 
 func TestRow(t *testing.T) {
+	t.Parallel()
 	for id, af := range [][][]float64{
 		{
 			{1, 2, 3},
@@ -200,6 +203,7 @@ func TestRow(t *testing.T) {
 }
 
 func TestCond(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		a       *Dense
 		condOne float64
@@ -239,21 +243,21 @@ func TestCond(t *testing.T) {
 	} {
 		orig := DenseCopyOf(test.a)
 		condOne := Cond(test.a, 1)
-		if !floats.EqualWithinAbsOrRel(test.condOne, condOne, 1e-13, 1e-13) {
+		if !scalar.EqualWithinAbsOrRel(test.condOne, condOne, 1e-13, 1e-13) {
 			t.Errorf("Case %d: one norm mismatch. Want %v, got %v", i, test.condOne, condOne)
 		}
 		if !Equal(test.a, orig) {
 			t.Errorf("Case %d: unexpected mutation of input matrix for one norm. Want %v, got %v", i, orig, test.a)
 		}
 		condTwo := Cond(test.a, 2)
-		if !floats.EqualWithinAbsOrRel(test.condTwo, condTwo, 1e-13, 1e-13) {
+		if !scalar.EqualWithinAbsOrRel(test.condTwo, condTwo, 1e-13, 1e-13) {
 			t.Errorf("Case %d: two norm mismatch. Want %v, got %v", i, test.condTwo, condTwo)
 		}
 		if !Equal(test.a, orig) {
 			t.Errorf("Case %d: unexpected mutation of input matrix for two norm. Want %v, got %v", i, orig, test.a)
 		}
 		condInf := Cond(test.a, math.Inf(1))
-		if !floats.EqualWithinAbsOrRel(test.condInf, condInf, 1e-13, 1e-13) {
+		if !scalar.EqualWithinAbsOrRel(test.condInf, condInf, 1e-13, 1e-13) {
 			t.Errorf("Case %d: inf norm mismatch. Want %v, got %v", i, test.condInf, condInf)
 		}
 		if !Equal(test.a, orig) {
@@ -289,6 +293,7 @@ func TestCond(t *testing.T) {
 }
 
 func TestDet(t *testing.T) {
+	t.Parallel()
 	for c, test := range []struct {
 		a   *Dense
 		ans float64
@@ -323,7 +328,7 @@ func TestDet(t *testing.T) {
 		if !Equal(a, test.a) {
 			t.Errorf("Input matrix changed during Det. Case %d.", c)
 		}
-		if !floats.EqualWithinAbsOrRel(det, test.ans, 1e-14, 1e-14) {
+		if !scalar.EqualWithinAbsOrRel(det, test.ans, 1e-14, 1e-14) {
 			t.Errorf("Det mismatch case %d. Got %v, want %v", c, det, test.ans)
 		}
 	}
@@ -367,37 +372,8 @@ func TestDet(t *testing.T) {
 	testOneInputFunc(t, "DetVsChol", f, denseComparison, sameAnswerFloatApproxTol(1e-10), isAnyType, isWide)
 }
 
-type basicVector struct {
-	m []float64
-}
-
-func (v *basicVector) AtVec(i int) float64 {
-	if i < 0 || i >= v.Len() {
-		panic(ErrRowAccess)
-	}
-	return v.m[i]
-}
-
-func (v *basicVector) At(r, c int) float64 {
-	if c != 0 {
-		panic(ErrColAccess)
-	}
-	return v.AtVec(r)
-}
-
-func (v *basicVector) Dims() (r, c int) {
-	return v.Len(), 1
-}
-
-func (v *basicVector) T() Matrix {
-	return Transpose{v}
-}
-
-func (v *basicVector) Len() int {
-	return len(v.m)
-}
-
 func TestDot(t *testing.T) {
+	t.Parallel()
 	f := func(a, b Matrix) interface{} {
 		return Dot(a.(Vector), b.(Vector))
 	}
@@ -419,6 +395,7 @@ func TestDot(t *testing.T) {
 }
 
 func TestEqual(t *testing.T) {
+	t.Parallel()
 	f := func(a, b Matrix) interface{} {
 		return Equal(a, b)
 	}
@@ -429,6 +406,7 @@ func TestEqual(t *testing.T) {
 }
 
 func TestMax(t *testing.T) {
+	t.Parallel()
 	// A direct test of Max with *Dense arguments is in TestNewDense.
 	f := func(a Matrix) interface{} {
 		return Max(a)
@@ -440,6 +418,7 @@ func TestMax(t *testing.T) {
 }
 
 func TestMin(t *testing.T) {
+	t.Parallel()
 	// A direct test of Min with *Dense arguments is in TestNewDense.
 	f := func(a Matrix) interface{} {
 		return Min(a)
@@ -451,6 +430,7 @@ func TestMin(t *testing.T) {
 }
 
 func TestNorm(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		a    [][]float64
 		ord  float64
@@ -507,6 +487,7 @@ func TestNorm(t *testing.T) {
 }
 
 func TestNormZero(t *testing.T) {
+	t.Parallel()
 	for _, a := range []Matrix{
 		&Dense{},
 		&SymDense{},
@@ -529,6 +510,7 @@ func TestNormZero(t *testing.T) {
 }
 
 func TestSum(t *testing.T) {
+	t.Parallel()
 	f := func(a Matrix) interface{} {
 		return Sum(a)
 	}
@@ -539,6 +521,7 @@ func TestSum(t *testing.T) {
 }
 
 func TestTrace(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		a     *Dense
 		trace float64
@@ -563,6 +546,7 @@ func TestTrace(t *testing.T) {
 }
 
 func TestTracer(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		a    Tracer
 		want float64
@@ -604,6 +588,7 @@ func TestTracer(t *testing.T) {
 }
 
 func TestDoer(t *testing.T) {
+	t.Parallel()
 	type MatrixDoer interface {
 		Matrix
 		NonZeroDoer
@@ -690,6 +675,95 @@ func TestDoer(t *testing.T) {
 		}
 		if got != want {
 			t.Errorf("unexpected ColDoer sum: got:%f want:%f", got, want)
+		}
+	}
+}
+
+func TestMulVecToer(t *testing.T) {
+	t.Parallel()
+	const tol = 1e-14
+
+	rnd := rand.New(rand.NewSource(1))
+	random := func(n int) []float64 {
+		d := make([]float64, n)
+		for i := range d {
+			d[i] = rnd.NormFloat64()
+		}
+		return d
+	}
+
+	type mulVecToer interface {
+		Matrix
+		MulVecTo(*VecDense, bool, Vector)
+	}
+	for _, a := range []mulVecToer{
+		NewBandDense(1, 1, 0, 0, random(1)),
+		NewBandDense(3, 1, 0, 0, random(1)),
+		NewBandDense(3, 1, 1, 0, random(4)),
+		NewBandDense(1, 3, 0, 0, random(1)),
+		NewBandDense(1, 3, 0, 1, random(2)),
+		NewBandDense(7, 10, 0, 0, random(7)),
+		NewBandDense(7, 10, 2, 3, random(42)),
+		NewBandDense(10, 7, 0, 0, random(7)),
+		NewBandDense(10, 7, 2, 3, random(54)),
+		NewBandDense(10, 10, 0, 0, random(10)),
+		NewBandDense(10, 10, 2, 3, random(60)),
+		NewSymBandDense(1, 0, random(1)),
+		NewSymBandDense(3, 0, random(3)),
+		NewSymBandDense(3, 1, random(6)),
+		NewSymBandDense(10, 0, random(10)),
+		NewSymBandDense(10, 1, random(20)),
+		NewSymBandDense(10, 4, random(50)),
+	} {
+		// Dense copy of A used for computing the expected result.
+		var aDense Dense
+		aDense.CloneFrom(a)
+
+		r, c := a.Dims()
+		for _, trans := range []bool{false, true} {
+			m, n := r, c
+			if trans {
+				m, n = c, r
+			}
+			for _, dst := range []*VecDense{
+				new(VecDense),
+				NewVecDense(m, random(m)),
+			} {
+				for xType := 0; xType <= 3; xType++ {
+					var x Vector
+					switch xType {
+					case 0:
+						x = NewVecDense(n, random(n))
+					case 1:
+						if m != n {
+							continue
+						}
+						x = dst
+					case 2:
+						x = &rawVector{asBasicVector(NewVecDense(n, random(n)))}
+					case 3:
+						x = asBasicVector(NewVecDense(n, random(n)))
+					default:
+						panic("bad xType")
+					}
+
+					var want VecDense
+					if !trans {
+						want.MulVec(&aDense, x)
+					} else {
+						want.MulVec(aDense.T(), x)
+					}
+
+					a.MulVecTo(dst, trans, x)
+
+					var diff VecDense
+					diff.SubVec(dst, &want)
+					if resid := Norm(&diff, 1); resid > tol*float64(m) {
+						t.Errorf("r=%d,c=%d,trans=%t,xType=%d: unexpected result; resid=%v, want<=%v",
+							r, c, trans, xType, resid, tol*float64(m))
+					}
+				}
+			}
 		}
 	}
 }

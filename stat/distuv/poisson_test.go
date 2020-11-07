@@ -5,15 +5,18 @@
 package distuv
 
 import (
+	"fmt"
+	"math"
 	"sort"
 	"testing"
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestPoissonProb(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-10
 	for i, tt := range []struct {
 		k      float64
@@ -55,13 +58,14 @@ func TestPoissonProb(t *testing.T) {
 	} {
 		p := Poisson{Lambda: tt.lambda}
 		got := p.Prob(tt.k)
-		if !floats.EqualWithinAbs(got, tt.want, tol) {
+		if !scalar.EqualWithinAbs(got, tt.want, tol) {
 			t.Errorf("test-%d: got=%e. want=%e\n", i, got, tt.want)
 		}
 	}
 }
 
 func TestPoissonCDF(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-10
 	for i, tt := range []struct {
 		k      float64
@@ -92,13 +96,14 @@ func TestPoissonCDF(t *testing.T) {
 	} {
 		p := Poisson{Lambda: tt.lambda}
 		got := p.CDF(tt.k)
-		if !floats.EqualWithinAbs(got, tt.want, tol) {
+		if !scalar.EqualWithinAbs(got, tt.want, tol) {
 			t.Errorf("test-%d: got=%e. want=%e\n", i, got, tt.want)
 		}
 	}
 }
 
 func TestPoisson(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, b := range []Poisson{
 		{100, src},
@@ -116,13 +121,61 @@ func TestPoisson(t *testing.T) {
 func testPoisson(t *testing.T, p Poisson, i int) {
 	const (
 		tol = 1e-2
-		n   = 1e6
+		n   = 2e6
 	)
 	x := make([]float64, n)
 	generateSamples(x, p)
 	sort.Float64s(x)
 
+	checkProbDiscrete(t, i, x, p, 2e-3)
 	checkMean(t, i, x, p, tol)
 	checkVarAndStd(t, i, x, p, tol)
 	checkExKurtosis(t, i, x, p, 7e-2)
+	checkSkewness(t, i, x, p, tol)
+
+	if p.NumParameters() != 1 {
+		t.Errorf("Mismatch in NumParameters: got %v, want 1", p.NumParameters())
+	}
+	cdf := p.CDF(-0.0001)
+	if cdf != 0 {
+		t.Errorf("Mismatch in CDF for x < 0: got %v, want 0", cdf)
+	}
+	surv := p.Survival(-0.0001)
+	if surv != 1 {
+		t.Errorf("Mismatch in Survival for x < 0: got %v, want 1", surv)
+	}
+	logProb := p.LogProb(-0.0001)
+	if !math.IsInf(logProb, -1) {
+		t.Errorf("Mismatch in LogProb for x < 0: got %v, want -Inf", logProb)
+	}
+	logProb = p.LogProb(1.5)
+	if !math.IsInf(logProb, -1) {
+		t.Errorf("Mismatch in LogProb for non-integer x: got %v, want -Inf", logProb)
+	}
+	for _, xx := range x {
+		cdf = p.CDF(xx)
+		surv = p.Survival(xx)
+		if math.Abs(cdf+surv-1) > 1e-10 {
+			t.Errorf("Mismatch between CDF and Survival at %g", xx)
+		}
+	}
+}
+
+func BenchmarkPoissonRand(b *testing.B) {
+	src := rand.New(rand.NewSource(1))
+	for i, p := range []Poisson{
+		{100, src},
+		{15, src},
+		{10, src},
+		{9.9, src},
+		{3, src},
+		{1.5, src},
+		{0.9, src},
+	} {
+		b.Run(fmt.Sprintf("case %d", i), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				p.Rand()
+			}
+		})
+	}
 }

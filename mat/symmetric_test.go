@@ -14,10 +14,11 @@ import (
 
 	"gonum.org/v1/gonum/blas"
 	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestNewSymmetric(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		data []float64
 		n    int
@@ -67,6 +68,7 @@ func TestNewSymmetric(t *testing.T) {
 }
 
 func TestSymAtSet(t *testing.T) {
+	t.Parallel()
 	sym := &SymDense{
 		mat: blas64.Symmetric{
 			N:      3,
@@ -130,6 +132,7 @@ func TestSymAtSet(t *testing.T) {
 }
 
 func TestSymDenseZero(t *testing.T) {
+	t.Parallel()
 	// Elements that equal 1 should be set to zero, elements that equal -1
 	// should remain unchanged.
 	for _, test := range []*SymDense{
@@ -162,6 +165,7 @@ func TestSymDenseZero(t *testing.T) {
 }
 
 func TestSymDiagView(t *testing.T) {
+	t.Parallel()
 	for cas, test := range []*SymDense{
 		NewSymDense(1, []float64{1}),
 		NewSymDense(2, []float64{1, 2, 2, 3}),
@@ -172,6 +176,8 @@ func TestSymDiagView(t *testing.T) {
 }
 
 func TestSymAdd(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
 	for _, test := range []struct {
 		n int
 	}{
@@ -185,11 +191,11 @@ func TestSymAdd(t *testing.T) {
 		n := test.n
 		a := NewSymDense(n, nil)
 		for i := range a.mat.Data {
-			a.mat.Data[i] = rand.Float64()
+			a.mat.Data[i] = rnd.Float64()
 		}
 		b := NewSymDense(n, nil)
 		for i := range a.mat.Data {
-			b.mat.Data[i] = rand.Float64()
+			b.mat.Data[i] = rnd.Float64()
 		}
 		var m Dense
 		m.Add(a, b)
@@ -233,6 +239,8 @@ func TestSymAdd(t *testing.T) {
 }
 
 func TestCopy(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
 	for _, test := range []struct {
 		n int
 	}{
@@ -246,7 +254,7 @@ func TestCopy(t *testing.T) {
 		n := test.n
 		a := NewSymDense(n, nil)
 		for i := range a.mat.Data {
-			a.mat.Data[i] = rand.Float64()
+			a.mat.Data[i] = rnd.Float64()
 		}
 		s := NewSymDense(n, nil)
 		s.CopySym(a)
@@ -264,6 +272,7 @@ func TestCopy(t *testing.T) {
 // TODO(kortschak) Roll this into testOneInput when it exists.
 // https://github.com/gonum/matrix/issues/171
 func TestSymCopyPanic(t *testing.T) {
+	t.Parallel()
 	var (
 		a SymDense
 		n int
@@ -279,6 +288,10 @@ func TestSymCopyPanic(t *testing.T) {
 }
 
 func TestSymRankOne(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
+	const tol = 1e-15
+
 	for _, test := range []struct {
 		n int
 	}{
@@ -293,11 +306,11 @@ func TestSymRankOne(t *testing.T) {
 		alpha := 2.0
 		a := NewSymDense(n, nil)
 		for i := range a.mat.Data {
-			a.mat.Data[i] = rand.Float64()
+			a.mat.Data[i] = rnd.Float64()
 		}
 		x := make([]float64, n)
 		for i := range x {
-			x[i] = rand.Float64()
+			x[i] = rnd.Float64()
 		}
 
 		xMat := NewDense(n, 1, x)
@@ -312,7 +325,7 @@ func TestSymRankOne(t *testing.T) {
 		for i := 0; i < n; i++ {
 			for j := i; j < n; j++ {
 				want := m.At(i, j)
-				if got := s.At(i, j); got != want {
+				if got := s.At(i, j); !scalar.EqualWithinAbsOrRel(got, want, tol, tol) {
 					t.Errorf("unexpected value for At(%d, %d): got: %v want: %v", i, j, got, want)
 				}
 			}
@@ -324,7 +337,7 @@ func TestSymRankOne(t *testing.T) {
 		for i := 0; i < n; i++ {
 			for j := i; j < n; j++ {
 				want := m.At(i, j)
-				if got := s.At(i, j); got != want {
+				if got := s.At(i, j); !scalar.EqualWithinAbsOrRel(got, want, tol, tol) {
 					t.Errorf("unexpected value for At(%d, %d): got: %v want: %v", i, j, got, want)
 				}
 			}
@@ -363,6 +376,7 @@ func TestSymRankOne(t *testing.T) {
 }
 
 func TestIssue250SymRankOne(t *testing.T) {
+	t.Parallel()
 	x := NewVecDense(5, []float64{1, 2, 3, 4, 5})
 	var s1, s2 SymDense
 	s1.SymRankOne(NewSymDense(5, nil), 1, x)
@@ -374,6 +388,8 @@ func TestIssue250SymRankOne(t *testing.T) {
 }
 
 func TestRankTwo(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
 	for _, test := range []struct {
 		n int
 	}{
@@ -388,13 +404,13 @@ func TestRankTwo(t *testing.T) {
 		alpha := 2.0
 		a := NewSymDense(n, nil)
 		for i := range a.mat.Data {
-			a.mat.Data[i] = rand.Float64()
+			a.mat.Data[i] = rnd.Float64()
 		}
 		x := make([]float64, n)
 		y := make([]float64, n)
 		for i := range x {
-			x[i] = rand.Float64()
-			y[i] = rand.Float64()
+			x[i] = rnd.Float64()
+			y[i] = rnd.Float64()
 		}
 
 		xMat := NewDense(n, 1, x)
@@ -412,7 +428,7 @@ func TestRankTwo(t *testing.T) {
 		s.RankTwo(a, alpha, NewVecDense(len(x), x), NewVecDense(len(y), y))
 		for i := 0; i < n; i++ {
 			for j := i; j < n; j++ {
-				if !floats.EqualWithinAbsOrRel(s.At(i, j), m.At(i, j), 1e-14, 1e-14) {
+				if !scalar.EqualWithinAbsOrRel(s.At(i, j), m.At(i, j), 1e-14, 1e-14) {
 					t.Errorf("unexpected element value at (%d,%d): got: %f want: %f", i, j, m.At(i, j), s.At(i, j))
 				}
 			}
@@ -423,7 +439,7 @@ func TestRankTwo(t *testing.T) {
 		s.RankTwo(s, alpha, NewVecDense(len(x), x), NewVecDense(len(y), y))
 		for i := 0; i < n; i++ {
 			for j := i; j < n; j++ {
-				if !floats.EqualWithinAbsOrRel(s.At(i, j), m.At(i, j), 1e-14, 1e-14) {
+				if !scalar.EqualWithinAbsOrRel(s.At(i, j), m.At(i, j), 1e-14, 1e-14) {
 					t.Errorf("unexpected element value at (%d,%d): got: %f want: %f", i, j, m.At(i, j), s.At(i, j))
 				}
 			}
@@ -432,6 +448,7 @@ func TestRankTwo(t *testing.T) {
 }
 
 func TestSymRankK(t *testing.T) {
+	t.Parallel()
 	alpha := 3.0
 	method := func(receiver, a, b Matrix) {
 		type SymRankKer interface {
@@ -460,6 +477,7 @@ func TestSymRankK(t *testing.T) {
 }
 
 func TestSymOuterK(t *testing.T) {
+	t.Parallel()
 	for _, f := range []float64{0.5, 1, 3} {
 		method := func(receiver, x Matrix) {
 			type SymOuterKer interface {
@@ -477,6 +495,7 @@ func TestSymOuterK(t *testing.T) {
 }
 
 func TestIssue250SymOuterK(t *testing.T) {
+	t.Parallel()
 	x := NewVecDense(5, []float64{1, 2, 3, 4, 5})
 	var s1, s2 SymDense
 	s1.SymOuterK(1, x)
@@ -488,6 +507,7 @@ func TestIssue250SymOuterK(t *testing.T) {
 }
 
 func TestScaleSym(t *testing.T) {
+	t.Parallel()
 	for _, f := range []float64{0.5, 1, 3} {
 		method := func(receiver, a Matrix) {
 			type ScaleSymer interface {
@@ -504,6 +524,7 @@ func TestScaleSym(t *testing.T) {
 }
 
 func TestSubsetSym(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		a    *SymDense
 		dims []int
@@ -585,6 +606,7 @@ func TestSubsetSym(t *testing.T) {
 }
 
 func TestViewGrowSquare(t *testing.T) {
+	t.Parallel()
 	// n is the size of the original SymDense.
 	// The first view uses start1, span1. The second view uses start2, span2 on
 	// the first view.
@@ -608,7 +630,7 @@ func TestViewGrowSquare(t *testing.T) {
 		// Take a subset and check the view matches.
 		start1 := test.start1
 		span1 := test.span1
-		v := s.SliceSym(start1, start1+span1).(*SymDense)
+		v := s.sliceSym(start1, start1+span1)
 		for i := 0; i < span1; i++ {
 			for j := i; j < span1; j++ {
 				if v.At(i, j) != s.At(start1+i, start1+j) {
@@ -663,10 +685,17 @@ func TestViewGrowSquare(t *testing.T) {
 				}
 			}
 		}
+
+		s.Reset()
+		rg := s.GrowSym(n).(*SymDense)
+		if rg.mat.Stride < n {
+			t.Errorf("unexpected stride after GrowSym on empty matrix: got:%d want >= %d", rg.mat.Stride, n)
+		}
 	}
 }
 
 func TestPowPSD(t *testing.T) {
+	t.Parallel()
 	for cas, test := range []struct {
 		a   *SymDense
 		pow float64
@@ -744,19 +773,21 @@ func BenchmarkSymSum1000(b *testing.B) { symSumBench(b, 1000) }
 var symSumForBench float64
 
 func symSumBench(b *testing.B, size int) {
-	a := randSymDense(size)
+	src := rand.NewSource(1)
+	a := randSymDense(size, src)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		symSumForBench = Sum(a)
 	}
 }
 
-func randSymDense(size int) *SymDense {
+func randSymDense(size int, src rand.Source) *SymDense {
+	rnd := rand.New(src)
 	backData := make([]float64, size*size)
 	for i := 0; i < size; i++ {
-		backData[i*size+i] = rand.Float64()
+		backData[i*size+i] = rnd.Float64()
 		for j := i + 1; j < size; j++ {
-			v := rand.Float64()
+			v := rnd.Float64()
 			backData[i*size+j] = v
 			backData[j*size+i] = v
 		}

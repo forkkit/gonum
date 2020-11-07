@@ -12,17 +12,18 @@ import (
 )
 
 func TestPlanckFormat(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		format string
 		want   string
 	}{
-		{"%v", "6.62607004e-34 kg m^2 s^-1"},
+		{"%v", "6.62607015e-34 kg m^2 s^-1"},
 		{"%.1v", "7e-34 kg m^2 s^-1"},
 		{"%50.1v", "                                 7e-34 kg m^2 s^-1"},
-		{"%50v", "                        6.62607004e-34 kg m^2 s^-1"},
-		{"%1v", "6.62607004e-34 kg m^2 s^-1"},
-		{"%#v", "constant.planckUnits(6.62607004e-34)"},
-		{"%s", "%!s(constant.planckUnits=6.62607004e-34 kg m^2 s^-1)"},
+		{"%50v", "                        6.62607015e-34 kg m^2 s^-1"},
+		{"%1v", "6.62607015e-34 kg m^2 s^-1"},
+		{"%#v", "constant.planckUnits(6.62607015e-34)"},
+		{"%s", "%!s(constant.planckUnits=6.62607015e-34 kg m^2 s^-1)"},
 	} {
 		got := fmt.Sprintf(test.format, Planck)
 		if got != test.want {

@@ -14,6 +14,8 @@ import (
 )
 
 func TestQR(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
 	for _, test := range []struct {
 		m, n int
 	}{
@@ -25,7 +27,7 @@ func TestQR(t *testing.T) {
 		a := NewDense(m, n, nil)
 		for i := 0; i < m; i++ {
 			for j := 0; j < n; j++ {
-				a.Set(i, j, rand.NormFloat64())
+				a.Set(i, j, rnd.NormFloat64())
 			}
 		}
 		var want Dense
@@ -72,6 +74,8 @@ func isOrthonormal(q *Dense, tol float64) bool {
 }
 
 func TestQRSolveTo(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
 	for _, trans := range []bool{false, true} {
 		for _, test := range []struct {
 			m, n, bc int
@@ -87,7 +91,7 @@ func TestQRSolveTo(t *testing.T) {
 			a := NewDense(m, n, nil)
 			for i := 0; i < m; i++ {
 				for j := 0; j < n; j++ {
-					a.Set(i, j, rand.Float64())
+					a.Set(i, j, rnd.Float64())
 				}
 			}
 			br := m
@@ -97,7 +101,7 @@ func TestQRSolveTo(t *testing.T) {
 			b := NewDense(br, bc, nil)
 			for i := 0; i < br; i++ {
 				for j := 0; j < bc; j++ {
-					b.Set(i, j, rand.Float64())
+					b.Set(i, j, rnd.Float64())
 				}
 			}
 			var x Dense
@@ -133,6 +137,8 @@ func TestQRSolveTo(t *testing.T) {
 }
 
 func TestQRSolveVecTo(t *testing.T) {
+	t.Parallel()
+	rnd := rand.New(rand.NewSource(1))
 	for _, trans := range []bool{false, true} {
 		for _, test := range []struct {
 			m, n int
@@ -145,7 +151,7 @@ func TestQRSolveVecTo(t *testing.T) {
 			a := NewDense(m, n, nil)
 			for i := 0; i < m; i++ {
 				for j := 0; j < n; j++ {
-					a.Set(i, j, rand.Float64())
+					a.Set(i, j, rnd.Float64())
 				}
 			}
 			br := m
@@ -154,7 +160,7 @@ func TestQRSolveVecTo(t *testing.T) {
 			}
 			b := NewVecDense(br, nil)
 			for i := 0; i < br; i++ {
-				b.SetVec(i, rand.Float64())
+				b.SetVec(i, rnd.Float64())
 			}
 			var x VecDense
 			var qr QR
@@ -189,6 +195,7 @@ func TestQRSolveVecTo(t *testing.T) {
 }
 
 func TestQRSolveCondTo(t *testing.T) {
+	t.Parallel()
 	for _, test := range []*Dense{
 		NewDense(2, 2, []float64{1, 0, 0, 1e-20}),
 		NewDense(3, 2, []float64{1, 0, 0, 1e-20, 0, 0}),

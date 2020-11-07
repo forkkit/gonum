@@ -16,6 +16,8 @@ import (
 
 // TODO: Need to add tests where one is overwritten.
 func TestMulTypes(t *testing.T) {
+	t.Parallel()
+	src := rand.NewSource(1)
 	for _, test := range []struct {
 		ar     int
 		ac     int
@@ -87,11 +89,11 @@ func TestMulTypes(t *testing.T) {
 
 		// Generate random matrices
 		avec := make([]float64, ar*ac)
-		randomSlice(avec)
+		randomSlice(avec, src)
 		a := NewDense(ar, ac, avec)
 
 		bvec := make([]float64, br*bc)
-		randomSlice(bvec)
+		randomSlice(bvec, src)
 
 		b := NewDense(br, bc, bvec)
 
@@ -131,7 +133,7 @@ func TestMulTypes(t *testing.T) {
 
 		// Normal multiply with existing receiver
 		c := NewDense(ar, bc, cvec)
-		randomSlice(cvec)
+		randomSlice(cvec, src)
 		testMul(t, a, b, c, acomp, bcomp, ccomp, false, "existing receiver")
 
 		// Cast a as a basic matrix
@@ -143,18 +145,19 @@ func TestMulTypes(t *testing.T) {
 		testMul(t, a, bm, d, acomp, bcomp, ccomp, true, "b is basic, receiver is empty")
 		d.Reset()
 		testMul(t, am, bm, d, acomp, bcomp, ccomp, true, "both basic, receiver is empty")
-		randomSlice(cvec)
+		randomSlice(cvec, src)
 		testMul(t, am, b, d, acomp, bcomp, ccomp, true, "a is basic, receiver is full")
-		randomSlice(cvec)
+		randomSlice(cvec, src)
 		testMul(t, a, bm, d, acomp, bcomp, ccomp, true, "b is basic, receiver is full")
-		randomSlice(cvec)
+		randomSlice(cvec, src)
 		testMul(t, am, bm, d, acomp, bcomp, ccomp, true, "both basic, receiver is full")
 	}
 }
 
-func randomSlice(s []float64) {
+func randomSlice(s []float64, src rand.Source) {
+	rnd := rand.New(src)
 	for i := range s {
-		s[i] = rand.NormFloat64()
+		s[i] = rnd.NormFloat64()
 	}
 }
 
@@ -197,214 +200,6 @@ func testMul(t *testing.T, a, b Matrix, c *Dense, acomp, bcomp, ccomp matComp, c
 	if !denseEqual(c, ccomp) {
 		t.Errorf("mul answer not equal for %v", name)
 	}
-}
-
-type basicMatrix Dense
-
-var _ Matrix = &basicMatrix{}
-
-func (m *basicMatrix) At(r, c int) float64 {
-	return (*Dense)(m).At(r, c)
-}
-
-func (m *basicMatrix) Dims() (r, c int) {
-	return (*Dense)(m).Dims()
-}
-
-func (m *basicMatrix) T() Matrix {
-	return Transpose{m}
-}
-
-type basicBanded BandDense
-
-var _ Banded = &basicBanded{}
-
-func (m *basicBanded) At(r, c int) float64 {
-	return (*BandDense)(m).At(r, c)
-}
-
-func (m *basicBanded) Dims() (r, c int) {
-	return (*BandDense)(m).Dims()
-}
-
-func (m *basicBanded) Bandwidth() (kl, ku int) {
-	return (*BandDense)(m).Bandwidth()
-}
-
-func (m *basicBanded) T() Matrix {
-	return Transpose{m}
-}
-
-func (m *basicBanded) TBand() Banded {
-	return TransposeBand{m}
-}
-
-type basicSymmetric SymDense
-
-var _ Symmetric = &basicSymmetric{}
-
-func (m *basicSymmetric) At(r, c int) float64 {
-	return (*SymDense)(m).At(r, c)
-}
-
-func (m *basicSymmetric) Dims() (r, c int) {
-	return (*SymDense)(m).Dims()
-}
-
-func (m *basicSymmetric) T() Matrix {
-	return m
-}
-
-func (m *basicSymmetric) Symmetric() int {
-	return (*SymDense)(m).Symmetric()
-}
-
-type basicTriangular TriDense
-
-var _ Triangular = &basicTriangular{}
-
-func (m *basicTriangular) At(r, c int) float64 {
-	return (*TriDense)(m).At(r, c)
-}
-
-func (m *basicTriangular) Dims() (r, c int) {
-	return (*TriDense)(m).Dims()
-}
-
-func (m *basicTriangular) T() Matrix {
-	return Transpose{m}
-}
-
-func (m *basicTriangular) Triangle() (int, TriKind) {
-	return (*TriDense)(m).Triangle()
-}
-
-func (m *basicTriangular) TTri() Triangular {
-	return TransposeTri{m}
-}
-
-type basicSymBanded SymBandDense
-
-var _ SymBanded = &basicSymBanded{}
-
-func (m *basicSymBanded) At(r, c int) float64 {
-	return (*SymBandDense)(m).At(r, c)
-}
-
-func (m *basicSymBanded) Dims() (r, c int) {
-	return (*SymBandDense)(m).Dims()
-}
-
-func (m *basicSymBanded) T() Matrix {
-	return m
-}
-
-func (m *basicSymBanded) TBand() Banded {
-	return m
-}
-
-func (m *basicSymBanded) Symmetric() int {
-	return (*SymBandDense)(m).Symmetric()
-}
-
-func (m *basicSymBanded) SymBand() (n, k int) {
-	return (*SymBandDense)(m).SymBand()
-}
-
-func (m *basicSymBanded) Bandwidth() (kl, ku int) {
-	return (*SymBandDense)(m).Bandwidth()
-}
-
-type basicTriBanded TriBandDense
-
-var _ TriBanded = &basicTriBanded{}
-
-func (m *basicTriBanded) At(r, c int) float64 {
-	return (*TriBandDense)(m).At(r, c)
-}
-
-func (m *basicTriBanded) Dims() (r, c int) {
-	return (*TriBandDense)(m).Dims()
-}
-
-func (m *basicTriBanded) T() Matrix {
-	return Transpose{m}
-}
-
-func (m *basicTriBanded) TTri() Triangular {
-	return TransposeTri{m}
-}
-
-func (m *basicTriBanded) TBand() Banded {
-	return TransposeBand{m}
-}
-
-func (m *basicTriBanded) TTriBand() TriBanded {
-	return TransposeTriBand{m}
-}
-
-func (m *basicTriBanded) Bandwidth() (kl, ku int) {
-	return (*TriBandDense)(m).Bandwidth()
-}
-
-func (m *basicTriBanded) Triangle() (int, TriKind) {
-	return (*TriBandDense)(m).Triangle()
-}
-
-func (m *basicTriBanded) TriBand() (n, k int, kind TriKind) {
-	return (*TriBandDense)(m).TriBand()
-}
-
-type basicDiagonal DiagDense
-
-var _ Diagonal = &basicDiagonal{}
-
-func (m *basicDiagonal) At(r, c int) float64 {
-	return (*DiagDense)(m).At(r, c)
-}
-
-func (m *basicDiagonal) Dims() (r, c int) {
-	return (*DiagDense)(m).Dims()
-}
-
-func (m *basicDiagonal) Diag() int {
-	return (*DiagDense)(m).Diag()
-}
-
-func (m *basicDiagonal) T() Matrix {
-	return Transpose{m}
-}
-
-func (m *basicDiagonal) TTri() Triangular {
-	return TransposeTri{m}
-}
-
-func (m *basicDiagonal) TBand() Banded {
-	return TransposeBand{m}
-}
-
-func (m *basicDiagonal) TTriBand() TriBanded {
-	return TransposeTriBand{m}
-}
-
-func (m *basicDiagonal) Bandwidth() (kl, ku int) {
-	return (*DiagDense)(m).Bandwidth()
-}
-
-func (m *basicDiagonal) Symmetric() int {
-	return (*DiagDense)(m).Symmetric()
-}
-
-func (m *basicDiagonal) SymBand() (n, k int) {
-	return (*DiagDense)(m).SymBand()
-}
-
-func (m *basicDiagonal) Triangle() (int, TriKind) {
-	return (*DiagDense)(m).Triangle()
-}
-
-func (m *basicDiagonal) TriBand() (n, k int, kind TriKind) {
-	return (*DiagDense)(m).TriBand()
 }
 
 func denseEqual(a *Dense, acomp matComp) bool {

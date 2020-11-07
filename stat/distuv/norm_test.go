@@ -10,11 +10,14 @@ import (
 	"testing"
 
 	"golang.org/x/exp/rand"
+
 	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 // TestNormalProbs tests LogProb, Prob, CumProb, and Quantile
 func TestNormalProbs(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
@@ -85,6 +88,7 @@ func TestNormalProbs(t *testing.T) {
 }
 
 func TestNormal(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, dist := range []Normal{
 		{Mu: 0, Sigma: 3, Src: src},
@@ -112,15 +116,21 @@ func testNormal(t *testing.T, dist Normal, i int) {
 	checkSkewness(t, i, x, dist, tol)
 	checkMedian(t, i, x, dist, tol)
 	checkQuantileCDFSurvival(t, i, x, dist, tol)
-	checkProbContinuous(t, i, x, dist, 1e-10)
+	checkProbContinuous(t, i, x, math.Inf(-1), math.Inf(1), dist, 1e-10)
 	checkProbQuantContinuous(t, i, x, dist, tol)
+
+	if dist.Mu != dist.Mode() {
+		t.Errorf("Mismatch in mode value: got %v, want %g", dist.Mode(), dist.Mu)
+	}
 }
 
 func TestNormFitPrior(t *testing.T) {
+	t.Parallel()
 	testConjugateUpdate(t, func() ConjugateUpdater { return &Normal{Mu: -10, Sigma: 6} })
 }
 
 func TestNormScore(t *testing.T) {
+	t.Parallel()
 	for _, test := range []*Normal{
 		{
 			Mu:    0,
@@ -136,6 +146,7 @@ func TestNormScore(t *testing.T) {
 }
 
 func TestNormalQuantile(t *testing.T) {
+	t.Parallel()
 	// Values from https://www.johndcook.com/blog/normal_cdf_inverse/
 	p := []float64{
 		0.0000001,
@@ -175,13 +186,14 @@ func TestNormalQuantile(t *testing.T) {
 	}
 	for i, v := range p {
 		got := UnitNormal.Quantile(v)
-		if !floats.EqualWithinAbsOrRel(got, ans[i], 1e-10, 1e-10) {
+		if !scalar.EqualWithinAbsOrRel(got, ans[i], 1e-10, 1e-10) {
 			t.Errorf("Quantile mismatch. Case %d, want: %v, got: %v", i, ans[i], got)
 		}
 	}
 }
 
 func TestNormFitPanic(t *testing.T) {
+	t.Parallel()
 	n := Normal{Mu: 0, Sigma: 1}
 	defer func() {
 		r := recover()
@@ -206,6 +218,7 @@ func BenchmarkNormalQuantile(b *testing.B) {
 
 // See https://github.com/gonum/gonum/issues/577 for details.
 func TestNormalIssue577(t *testing.T) {
+	t.Parallel()
 	x := -36.0
 	max := 1.e-282
 	cdf := Normal{Mu: 0, Sigma: 1}.CDF(x)

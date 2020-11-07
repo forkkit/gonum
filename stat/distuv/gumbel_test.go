@@ -9,12 +9,12 @@ import (
 	"sort"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
-
 	"golang.org/x/exp/rand"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestGumbelRightProbCDF(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		x, mu, beta, wantProb, wantCDF float64
 	}{
@@ -30,17 +30,18 @@ func TestGumbelRightProbCDF(t *testing.T) {
 	} {
 		g := GumbelRight{Mu: test.mu, Beta: test.beta}
 		pdf := g.Prob(test.x)
-		if !floats.EqualWithinAbsOrRel(pdf, test.wantProb, 1e-12, 1e-12) {
+		if !scalar.EqualWithinAbsOrRel(pdf, test.wantProb, 1e-12, 1e-12) {
 			t.Errorf("Prob mismatch, x = %v, mu = %v, beta = %v. Got %v, want %v", test.x, test.mu, test.beta, pdf, test.wantProb)
 		}
 		cdf := g.CDF(test.x)
-		if !floats.EqualWithinAbsOrRel(cdf, test.wantCDF, 1e-12, 1e-12) {
+		if !scalar.EqualWithinAbsOrRel(cdf, test.wantCDF, 1e-12, 1e-12) {
 			t.Errorf("CDF mismatch, x = %v, mu = %v, beta = %v. Got %v, want %v", test.x, test.mu, test.beta, cdf, test.wantCDF)
 		}
 	}
 }
 
 func TestGumbelRight(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, b := range []GumbelRight{
 		{0, 1, src},
@@ -63,10 +64,18 @@ func testGumbelRight(t *testing.T, g GumbelRight, i int) {
 
 	min := math.Inf(-1)
 	testRandLogProbContinuous(t, i, min, x, g, tol, bins)
-	checkProbContinuous(t, i, x, g, 1e-3)
+	checkProbContinuous(t, i, x, math.Inf(-1), math.Inf(1), g, 1e-10)
+	checkEntropy(t, i, x, g, tol)
 	checkMean(t, i, x, g, tol)
+	checkMedian(t, i, x, g, tol)
 	checkVarAndStd(t, i, x, g, tol)
 	checkExKurtosis(t, i, x, g, 1e-1)
 	checkSkewness(t, i, x, g, 5e-2)
 	checkQuantileCDFSurvival(t, i, x, g, 5e-3)
+	if g.Mu != g.Mode() {
+		t.Errorf("Mismatch in mode value: got %v, want %g", g.Mode(), g.Mu)
+	}
+	if g.NumParameters() != 2 {
+		t.Errorf("Mismatch in NumParameters: got %v, want 2", g.NumParameters())
+	}
 }

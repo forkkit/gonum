@@ -5,6 +5,13 @@ if [[ "${TRAVIS_SECURE_ENV_VARS}" != true ]]; then
 	exit 0
 fi
 
+# FIXME(kortschak): When we have arm64 assembly kernels,
+# reconsider this for the internal/asm packages.
+if [[ $(go env GOARCH) != "amd64" ]]; then
+	echo "skipping coverage - GOARCH != amd64"
+	exit 0
+fi
+
 ORIGIN_MASTER="$(git ls-remote origin master | cut -f1)"
 CURRENT="$(git rev-parse HEAD)"
 if [[ ${ORIGIN_MASTER} != ${CURRENT} ]]; then
@@ -42,8 +49,8 @@ testCover() {
 # Init coverage.txt
 echo "mode: ${MODE}" > $ACC_OUT
 
-# Run test coverage on all directories containing go files except testlapack testblas and testgraph.
-find . -type d -not -path '*testlapack*' -and -not -path '*testblas*' -and -not -path '*testgraph*' | while read d; do testCover $d || exit; done
+# Run test coverage on all directories containing go files except testlapack, testblas, testgraph and testrand.
+find . -type d -not -path '*testlapack*' -and -not -path '*testblas*' -and -not -path '*testgraph*' -and -not -path '*testrand*' | while read d; do testCover $d || exit; done
 
 # Upload the coverage profile to coveralls.io
 [ -n "$COVERALLS_TOKEN" ] && ( goveralls -coverprofile=$ACC_OUT || echo -e '\n\e[31mCoveralls failed.\n' )

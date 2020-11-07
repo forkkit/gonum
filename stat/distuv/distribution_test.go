@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 	"gonum.org/v1/gonum/integrate/quad"
 	"gonum.org/v1/gonum/stat"
 )
@@ -71,25 +72,25 @@ type cumulantProber interface {
 
 func checkMean(t *testing.T, i int, x []float64, m meaner, tol float64) {
 	mean := stat.Mean(x, nil)
-	if !floats.EqualWithinAbsOrRel(mean, m.Mean(), tol, tol) {
+	if !scalar.EqualWithinAbsOrRel(mean, m.Mean(), tol, tol) {
 		t.Errorf("Mean mismatch case %v: want: %v, got: %v", i, mean, m.Mean())
 	}
 }
 
 func checkMedian(t *testing.T, i int, x []float64, m medianer, tol float64) {
 	median := stat.Quantile(0.5, stat.Empirical, x, nil)
-	if !floats.EqualWithinAbsOrRel(median, m.Median(), tol, tol) {
+	if !scalar.EqualWithinAbsOrRel(median, m.Median(), tol, tol) {
 		t.Errorf("Median mismatch case %v: want: %v, got: %v", i, median, m.Median())
 	}
 }
 
 func checkVarAndStd(t *testing.T, i int, x []float64, v varStder, tol float64) {
 	variance := stat.Variance(x, nil)
-	if !floats.EqualWithinAbsOrRel(variance, v.Variance(), tol, tol) {
+	if !scalar.EqualWithinAbsOrRel(variance, v.Variance(), tol, tol) {
 		t.Errorf("Variance mismatch case %v: want: %v, got: %v", i, variance, v.Variance())
 	}
 	std := math.Sqrt(variance)
-	if !floats.EqualWithinAbsOrRel(std, v.StdDev(), tol, tol) {
+	if !scalar.EqualWithinAbsOrRel(std, v.StdDev(), tol, tol) {
 		t.Errorf("StdDev mismatch case %v: want: %v, got: %v", i, std, v.StdDev())
 	}
 }
@@ -100,7 +101,7 @@ func checkEntropy(t *testing.T, i int, x []float64, e entropyer, tol float64) {
 		tmp[i] = -e.LogProb(v)
 	}
 	entropy := stat.Mean(tmp, nil)
-	if !floats.EqualWithinAbsOrRel(entropy, e.Entropy(), tol, tol) {
+	if !scalar.EqualWithinAbsOrRel(entropy, e.Entropy(), tol, tol) {
 		t.Errorf("Entropy mismatch case %v: want: %v, got: %v", i, entropy, e.Entropy())
 	}
 }
@@ -114,7 +115,7 @@ func checkExKurtosis(t *testing.T, i int, x []float64, e exKurtosiser, tol float
 	variance := stat.Variance(x, nil)
 	mu4 := stat.Mean(tmp, nil)
 	kurtosis := mu4/(variance*variance) - 3
-	if !floats.EqualWithinAbsOrRel(kurtosis, e.ExKurtosis(), tol, tol) {
+	if !scalar.EqualWithinAbsOrRel(kurtosis, e.ExKurtosis(), tol, tol) {
 		t.Errorf("ExKurtosis mismatch case %v: want: %v, got: %v", i, kurtosis, e.ExKurtosis())
 	}
 }
@@ -128,7 +129,7 @@ func checkSkewness(t *testing.T, i int, x []float64, s skewnesser, tol float64) 
 	}
 	mu3 := stat.Mean(tmp, nil)
 	skewness := mu3 / math.Pow(std, 3)
-	if !floats.EqualWithinAbsOrRel(skewness, s.Skewness(), tol, tol) {
+	if !scalar.EqualWithinAbsOrRel(skewness, s.Skewness(), tol, tol) {
 		t.Errorf("Skewness mismatch case %v: want: %v, got: %v", i, skewness, s.Skewness())
 	}
 }
@@ -139,21 +140,28 @@ func checkQuantileCDFSurvival(t *testing.T, i int, xs []float64, c cumulanter, t
 		x := c.Quantile(p)
 		cdf := c.CDF(x)
 		estCDF := stat.CDF(x, stat.Empirical, xs, nil)
-		if !floats.EqualWithinAbsOrRel(cdf, estCDF, tol, tol) {
+		if !scalar.EqualWithinAbsOrRel(cdf, estCDF, tol, tol) {
 			t.Errorf("CDF mismatch case %v: want: %v, got: %v", i, estCDF, cdf)
 		}
-		if !floats.EqualWithinAbsOrRel(cdf, p, tol, tol) {
+		if !scalar.EqualWithinAbsOrRel(cdf, p, tol, tol) {
 			t.Errorf("Quantile/CDF mismatch case %v: want: %v, got: %v", i, p, cdf)
 		}
 		if math.Abs(1-cdf-c.Survival(x)) > 1e-14 {
 			t.Errorf("Survival/CDF mismatch case %v: want: %v, got: %v", i, 1-cdf, c.Survival(x))
 		}
 	}
+	if !panics(func() { c.Quantile(-0.0001) }) {
+		t.Errorf("Expected panic with negative argument to Quantile")
+	}
+	if !panics(func() { c.Quantile(1.0001) }) {
+		t.Errorf("Expected panic with Quantile argument above 1")
+	}
 }
 
-func checkProbContinuous(t *testing.T, i int, x []float64, p probLogprober, tol float64) {
-	// Check that the PDF is consistent (integrates to 1).
-	q := quad.Fixed(p.Prob, math.Inf(-1), math.Inf(1), 1000000, nil, 0)
+// checkProbContinuous checks that the PDF is consistent with LogPDF
+// and integrates to 1 from the lower to upper bound.
+func checkProbContinuous(t *testing.T, i int, x []float64, lower float64, upper float64, p probLogprober, tol float64) {
+	q := quad.Fixed(p.Prob, lower, upper, 1000000, nil, 0)
 	if math.Abs(q-1) > tol {
 		t.Errorf("Probability distribution doesn't integrate to 1. Case %v: Got %v", i, q)
 	}
@@ -210,6 +218,22 @@ func checkProbQuantContinuous(t *testing.T, i int, xs []float64, c cumulantProbe
 	}
 }
 
+type moder interface {
+	Mode() float64
+}
+
+func checkMode(t *testing.T, i int, xs []float64, m moder, dx float64, tol float64) {
+	rXs := make([]float64, len(xs))
+	for j, x := range xs {
+		rXs[j] = math.RoundToEven(x/dx) * dx
+	}
+	want, _ := stat.Mode(rXs, nil)
+	got := m.Mode()
+	if !scalar.EqualWithinAbs(want, got, tol) {
+		t.Errorf("Mode mismatch case %d: want %g, got %v", i, want, got)
+	}
+}
+
 // checkProbDiscrete confirms that PDF and Rand are consistent for discrete distributions.
 func checkProbDiscrete(t *testing.T, i int, xs []float64, p probLogprober, tol float64) {
 	// Make a map of all of the unique samples.
@@ -239,9 +263,20 @@ func testRandLogProbContinuous(t *testing.T, i int, min float64, x []float64, f 
 			return math.Exp(f.LogProb(x))
 		}
 		// Integrate the PDF to find the CDF
-		estCDF := quad.Fixed(prob, min, pt, 1000, nil, 0)
-		if !floats.EqualWithinAbsOrRel(cdf, estCDF, tol, tol) {
+		estCDF := quad.Fixed(prob, min, pt, 10000, nil, 0)
+		if !scalar.EqualWithinAbsOrRel(cdf, estCDF, tol, tol) {
 			t.Errorf("Mismatch between integral of PDF and empirical CDF. Case %v. Want %v, got %v", i, cdf, estCDF)
 		}
 	}
+}
+
+func panics(fun func()) (b bool) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			b = true
+		}
+	}()
+	fun()
+	return
 }

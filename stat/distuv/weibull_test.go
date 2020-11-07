@@ -13,6 +13,7 @@ import (
 )
 
 func TestHalfKStandardWeibullProb(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
@@ -24,7 +25,7 @@ func TestHalfKStandardWeibullProb(t *testing.T) {
 			loc:     -1,
 			prob:    0,
 			cumProb: 0,
-			logProb: 0,
+			logProb: math.Inf(-1),
 		},
 		{
 			loc:     1,
@@ -43,18 +44,19 @@ func TestHalfKStandardWeibullProb(t *testing.T) {
 }
 
 func TestExponentialStandardWeibullProb(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
 			prob:    1,
 			cumProb: 0,
-			logProb: math.Inf(1),
+			logProb: 0,
 		},
 		{
 			loc:     -1,
 			prob:    0,
 			cumProb: 0,
-			logProb: 0,
+			logProb: math.Inf(-1),
 		},
 		{
 			loc:     1,
@@ -73,6 +75,7 @@ func TestExponentialStandardWeibullProb(t *testing.T) {
 }
 
 func TestRayleighStandardWeibullProb(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
@@ -84,7 +87,7 @@ func TestRayleighStandardWeibullProb(t *testing.T) {
 			loc:     -1,
 			prob:    0,
 			cumProb: 0,
-			logProb: 0,
+			logProb: math.Inf(-1),
 		},
 		{
 			loc:     1,
@@ -103,6 +106,7 @@ func TestRayleighStandardWeibullProb(t *testing.T) {
 }
 
 func TestFiveKStandardWeibullProb(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
@@ -114,7 +118,7 @@ func TestFiveKStandardWeibullProb(t *testing.T) {
 			loc:     -1,
 			prob:    0,
 			cumProb: 0,
-			logProb: 0,
+			logProb: math.Inf(-1),
 		},
 		{
 			loc:     1,
@@ -133,6 +137,7 @@ func TestFiveKStandardWeibullProb(t *testing.T) {
 }
 
 func TestScaledUpHalfKStandardWeibullProb(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
@@ -144,7 +149,7 @@ func TestScaledUpHalfKStandardWeibullProb(t *testing.T) {
 			loc:     -1,
 			prob:    0,
 			cumProb: 0,
-			logProb: 0,
+			logProb: math.Inf(-1),
 		},
 		{
 			loc:     1,
@@ -163,6 +168,7 @@ func TestScaledUpHalfKStandardWeibullProb(t *testing.T) {
 }
 
 func TestScaledDownHalfKStandardWeibullProb(t *testing.T) {
+	t.Parallel()
 	pts := []univariateProbPoint{
 		{
 			loc:     0,
@@ -174,7 +180,7 @@ func TestScaledDownHalfKStandardWeibullProb(t *testing.T) {
 			loc:     -1,
 			prob:    0,
 			cumProb: 0,
-			logProb: 0,
+			logProb: math.Inf(-1),
 		},
 		{
 			loc:     1,
@@ -192,8 +198,9 @@ func TestScaledDownHalfKStandardWeibullProb(t *testing.T) {
 	testDistributionProbs(t, Weibull{K: 0.5, Lambda: 0.5}, "0.5K 0.5λ Weibull", pts)
 }
 
-func TestWeibullScore(t *testing.T) {
-	for _, test := range []*Weibull{
+func TestWeibullScores(t *testing.T) {
+	t.Parallel()
+	for i, test := range []*Weibull{
 		{
 			K:      1,
 			Lambda: 1,
@@ -208,12 +215,24 @@ func TestWeibullScore(t *testing.T) {
 		},
 	} {
 		testDerivParam(t, test)
+		for _, x := range []float64{0, -0.0001} {
+			score := test.Score(nil, 0)
+			if !math.IsNaN(score[0]) || !math.IsNaN(score[1]) {
+				t.Errorf("Score mismatch for case %d and x == %g: got %v, want [NaN, NaN]", i, x, score)
+			}
+			scoreInput := test.ScoreInput(0)
+			if !math.IsNaN(scoreInput) {
+				t.Errorf("ScoreInput mismatch for case %d and x == %g: got %v, want NaN", i, x, score)
+			}
+		}
 	}
 }
 
 func TestWeibull(t *testing.T) {
+	t.Parallel()
 	src := rand.New(rand.NewSource(1))
 	for i, dist := range []Weibull{
+		{K: 0.75, Lambda: 1, Src: src},
 		{K: 1, Lambda: 1, Src: src},
 		{K: 2, Lambda: 3.6, Src: src},
 		{K: 3.4, Lambda: 8, Src: src},
@@ -239,6 +258,15 @@ func testWeibull(t *testing.T, dist Weibull, i int) {
 	checkSkewness(t, i, x, dist, tol)
 	checkMedian(t, i, x, dist, tol)
 	checkQuantileCDFSurvival(t, i, x, dist, tol)
-	checkProbContinuous(t, i, x, dist, 1e-10)
+	// Weibull distribution PDF has a singularity at 0 for K < 1,
+	// so we need higher tolerance.
+	var probTol float64
+	if dist.K >= 1 {
+		probTol = 1e-10
+	} else {
+		probTol = 1e-8
+	}
+	checkProbContinuous(t, i, x, 0, math.Inf(1), dist, probTol)
 	checkProbQuantContinuous(t, i, x, dist, tol)
+	checkMode(t, i, x, dist, 1e-1, 2e-1)
 }

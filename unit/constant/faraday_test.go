@@ -12,17 +12,18 @@ import (
 )
 
 func TestFaradayFormat(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		format string
 		want   string
 	}{
-		{"%v", "96485.33289 A s mol^-1"},
+		{"%v", "96485.33212 A s mol^-1"},
 		{"%.1v", "1e+05 A s mol^-1"},
 		{"%50.1v", "                                  1e+05 A s mol^-1"},
-		{"%50v", "                            96485.33289 A s mol^-1"},
-		{"%1v", "96485.33289 A s mol^-1"},
-		{"%#v", "constant.faradayUnits(96485.33289)"},
-		{"%s", "%!s(constant.faradayUnits=96485.33289 A s mol^-1)"},
+		{"%50v", "                            96485.33212 A s mol^-1"},
+		{"%1v", "96485.33212 A s mol^-1"},
+		{"%#v", "constant.faradayUnits(96485.33212)"},
+		{"%s", "%!s(constant.faradayUnits=96485.33212 A s mol^-1)"},
 	} {
 		got := fmt.Sprintf(test.format, Faraday)
 		if got != test.want {

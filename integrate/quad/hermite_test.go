@@ -10,9 +10,11 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 func TestHermite(t *testing.T) {
+	t.Parallel()
 	for cas, test := range []struct {
 		n   int
 		f   func(float64) float64
@@ -63,13 +65,14 @@ func TestHermite(t *testing.T) {
 		},
 	} {
 		ev := Fixed(test.f, math.Inf(-1), math.Inf(1), test.n, Hermite{}, 0)
-		if !floats.EqualWithinAbsOrRel(test.ev, ev, test.tol, test.tol) {
+		if !scalar.EqualWithinAbsOrRel(test.ev, ev, test.tol, test.tol) {
 			t.Errorf("Case %d: expected value mismatch.\nWant %v\ngot %v", cas, test.ev, ev)
 		}
 	}
 }
 
 func TestHermiteLocations(t *testing.T) {
+	t.Parallel()
 	// Test the hermite locations and weights against other precomputed table.
 	// Data from http://dlmf.nist.gov/3.5.
 	for _, test := range []struct {
@@ -139,6 +142,7 @@ func TestHermiteLocations(t *testing.T) {
 }
 
 func TestHermiteInitialGuesses(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		n    int
 		want []float64
@@ -164,6 +168,7 @@ func TestHermiteInitialGuesses(t *testing.T) {
 }
 
 func TestHermiteLocationsAsy0(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		n int
 		x []float64
@@ -199,6 +204,7 @@ func TestHermiteLocationsAsy0(t *testing.T) {
 }
 
 func TestHermiteAsyAiry(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		n     int
 		theta []float64

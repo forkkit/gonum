@@ -75,7 +75,7 @@ func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.
 	}
 
 	unconverged := impl.Dhseqr(job, compz, n, ilo, ihi, h.Data, h.Stride, wr, wi, z.Data, z.Stride, work, len(work))
-	prefix := fmt.Sprintf("Case %v: job=%v, compz=%v, n=%v, ilo=%v, ihi=%v, extra=%v, optwk=%v",
+	prefix := fmt.Sprintf("Case %v: job=%c, compz=%c, n=%v, ilo=%v, ihi=%v, extra=%v, optwk=%v",
 		i, job, compz, n, ilo, ihi, extra, optwork)
 	if unconverged > 0 {
 		t.Logf("%v: Dhseqr did not compute all eigenvalues. unconverged=%v", prefix, unconverged)
@@ -178,8 +178,8 @@ func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.
 	}
 
 	// Z must be orthogonal.
-	if !isOrthogonal(z) {
-		t.Errorf("%v: Z is not orthogonal", prefix)
+	if resid := residualOrthogonal(z, false); resid > tol*float64(n) {
+		t.Errorf("Case %v: Z is not orthogonal; resid=%v, want<=%v", prefix, resid, tol*float64(n))
 	}
 
 	if job == lapack.EigenvaluesAndSchur {

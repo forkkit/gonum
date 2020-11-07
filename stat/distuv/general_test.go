@@ -29,9 +29,17 @@ type UniProbDist interface {
 }
 
 func absEq(a, b float64) bool {
+	return absEqTol(a, b, 1e-14)
+}
+
+func absEqTol(a, b, tol float64) bool {
+	if math.IsNaN(a) || math.IsNaN(b) {
+		// NaN is not equal to anything.
+		return false
+	}
 	// This is expressed as the inverse to catch the
 	// case a = Inf and b = Inf of the same sign.
-	return !(math.Abs(a-b) > 1e-14)
+	return !(math.Abs(a-b) > tol)
 }
 
 // TODO: Implement a better test for Quantile
@@ -39,11 +47,11 @@ func testDistributionProbs(t *testing.T, dist UniProbDist, name string, pts []un
 	for _, pt := range pts {
 		logProb := dist.LogProb(pt.loc)
 		if !absEq(logProb, pt.logProb) {
-			t.Errorf("Log probability doesnt match for "+name+". Expected %v. Found %v", pt.logProb, logProb)
+			t.Errorf("Log probability doesnt match for "+name+" at %v. Expected %v. Found %v", pt.loc, pt.logProb, logProb)
 		}
 		prob := dist.Prob(pt.loc)
 		if !absEq(prob, pt.prob) {
-			t.Errorf("Probability doesn't match for "+name+". Expected %v. Found %v", pt.prob, prob)
+			t.Errorf("Probability doesn't match for "+name+" at %v. Expected %v. Found %v", pt.loc, pt.prob, prob)
 		}
 		cumProb := dist.CDF(pt.loc)
 		if !absEq(cumProb, pt.cumProb) {
@@ -124,6 +132,33 @@ func testConjugateUpdate(t *testing.T, newFittable func() ConjugateUpdater) {
 			}
 		}
 	}
+	testSuffStatPanics(t, newFittable)
+	testConjugateUpdatePanics(t, newFittable)
+}
+
+func testSuffStatPanics(t *testing.T, newFittable func() ConjugateUpdater) {
+	dist := newFittable()
+	sample := randn(dist, 10)
+	if !panics(func() { dist.SuffStat(make([]float64, dist.NumSuffStat()), sample, make([]float64, len(sample)+1)) }) {
+		t.Errorf("Expected panic for mismatch between samples and weights lengths")
+	}
+	if !panics(func() { dist.SuffStat(make([]float64, dist.NumSuffStat()+1), sample, nil) }) {
+		t.Errorf("Expected panic for wrong sufficient statistic length")
+	}
+}
+
+func testConjugateUpdatePanics(t *testing.T, newFittable func() ConjugateUpdater) {
+	dist := newFittable()
+	if !panics(func() {
+		dist.ConjugateUpdate(make([]float64, dist.NumSuffStat()+1), 100, make([]float64, dist.NumParameters()))
+	}) {
+		t.Errorf("Expected panic for wrong sufficient statistic length")
+	}
+	if !panics(func() {
+		dist.ConjugateUpdate(make([]float64, dist.NumSuffStat()), 100, make([]float64, dist.NumParameters()+1))
+	}) {
+		t.Errorf("Expected panic for wrong prior strength length")
+	}
 }
 
 // randn generates a specified number of random samples
@@ -158,6 +193,7 @@ func parametersEqual(p1, p2 []Parameter, tol float64) bool {
 type derivParamTester interface {
 	LogProb(x float64) float64
 	Score(deriv []float64, x float64) []float64
+	ScoreInput(x float64) float64
 	Quantile(p float64) float64
 	NumParameters() int
 	parameters([]Parameter) []Parameter
@@ -171,10 +207,33 @@ func testDerivParam(t *testing.T, d derivParamTester) {
 	quantiles := make([]float64, nTest)
 	floats.Span(quantiles, 0.1, 0.9)
 
-	deriv := make([]float64, d.NumParameters())
-	fdDeriv := make([]float64, d.NumParameters())
+	scoreInPlace := make([]float64, d.NumParameters())
+	fdDerivParam := make([]float64, d.NumParameters())
+
+	if !panics(func() { d.Score(make([]float64, d.NumParameters()+1), 0) }) {
+		t.Errorf("Expected panic for wrong derivative slice length")
+	}
+	if !panics(func() { d.parameters(make([]Parameter, d.NumParameters()+1)) }) {
+		t.Errorf("Expected panic for wrong parameter slice length")
+	}
 
 	initParams := d.parameters(nil)
+	tooLongParams := make([]Parameter, len(initParams)+1)
+	copy(tooLongParams, initParams)
+	if !panics(func() { d.setParameters(tooLongParams) }) {
+		t.Errorf("Expected panic for wrong parameter slice length")
+	}
+	badNameParams := make([]Parameter, len(initParams))
+	copy(badNameParams, initParams)
+	const badName = "__badName__"
+	for i := 0; i < len(initParams); i++ {
+		badNameParams[i].Name = badName
+		if !panics(func() { d.setParameters(badNameParams) }) {
+			t.Errorf("Expected panic for wrong %d-th parameter name", i)
+		}
+		badNameParams[i].Name = initParams[i].Name
+	}
+
 	init := make([]float64, d.NumParameters())
 	for i, v := range initParams {
 		init[i] = v.Value
@@ -182,8 +241,11 @@ func testDerivParam(t *testing.T, d derivParamTester) {
 	for _, v := range quantiles {
 		d.setParameters(initParams)
 		x := d.Quantile(v)
-		d.Score(deriv, x)
-		f := func(p []float64) float64 {
+		score := d.Score(scoreInPlace, x)
+		if &score[0] != &scoreInPlace[0] {
+			t.Errorf("Returned a different derivative slice than passed in. Got %v, want %v", score, scoreInPlace)
+		}
+		logProbParams := func(p []float64) float64 {
 			params := d.parameters(nil)
 			for i, v := range p {
 				params[i].Value = v
@@ -191,14 +253,22 @@ func testDerivParam(t *testing.T, d derivParamTester) {
 			d.setParameters(params)
 			return d.LogProb(x)
 		}
-		fd.Gradient(fdDeriv, f, init, nil)
-		if !floats.EqualApprox(deriv, fdDeriv, 1e-6) {
-			t.Fatal("Derivative mismatch. Want", fdDeriv, ", got", deriv, ".")
+		fd.Gradient(fdDerivParam, logProbParams, init, nil)
+		if !floats.EqualApprox(scoreInPlace, fdDerivParam, 1e-6) {
+			t.Errorf("Score mismatch at x = %g. Want %v, got %v", x, fdDerivParam, scoreInPlace)
 		}
 		d.setParameters(initParams)
-		d2 := d.Score(nil, x)
-		if !floats.EqualApprox(d2, deriv, 1e-14) {
-			t.Errorf("Derivative mismatch when input nil Want %v, got %v", d2, deriv)
+		score2 := d.Score(nil, x)
+		if !floats.EqualApprox(score2, scoreInPlace, 1e-14) {
+			t.Errorf("Score mismatch when input nil Want %v, got %v", score2, scoreInPlace)
+		}
+		logProbInput := func(x2 float64) float64 {
+			return d.LogProb(x2)
+		}
+		scoreInput := d.ScoreInput(x)
+		fdDerivInput := fd.Derivative(logProbInput, x, nil)
+		if !absEqTol(scoreInput, fdDerivInput, 1e-6) {
+			t.Errorf("ScoreInput mismatch at x = %g. Want %v, got %v", x, fdDerivInput, scoreInput)
 		}
 	}
 }

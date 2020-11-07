@@ -9,7 +9,7 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 	"gonum.org/v1/gonum/num/quat"
 )
 
@@ -35,6 +35,7 @@ var formatTests = []struct {
 }
 
 func TestFormat(t *testing.T) {
+	t.Parallel()
 	for _, test := range formatTests {
 		got := fmt.Sprintf(test.format, test.d)
 		if got != test.want {
@@ -112,6 +113,7 @@ var dualTests = []struct {
 }
 
 func TestNumber(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 	for _, test := range dualTests {
 		for _, x := range test.x {
@@ -142,6 +144,7 @@ var invTests = []Number{
 }
 
 func TestInv(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 	for _, x := range invTests {
 		got := Mul(x, Inv(x))
@@ -275,6 +278,7 @@ var powRealTests = []struct {
 }
 
 func TestPowReal(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-15
 	for _, test := range powRealTests {
 		got := PowReal(test.d, test.p)
@@ -293,8 +297,8 @@ func same(a, b quat.Number, tol float64) bool {
 }
 
 func equalApprox(a, b quat.Number, tol float64) bool {
-	return floats.EqualWithinAbsOrRel(a.Real, b.Real, tol, tol) &&
-		floats.EqualWithinAbsOrRel(a.Imag, b.Imag, tol, tol) &&
-		floats.EqualWithinAbsOrRel(a.Jmag, b.Jmag, tol, tol) &&
-		floats.EqualWithinAbsOrRel(a.Kmag, b.Kmag, tol, tol)
+	return scalar.EqualWithinAbsOrRel(a.Real, b.Real, tol, tol) &&
+		scalar.EqualWithinAbsOrRel(a.Imag, b.Imag, tol, tol) &&
+		scalar.EqualWithinAbsOrRel(a.Jmag, b.Jmag, tol, tol) &&
+		scalar.EqualWithinAbsOrRel(a.Kmag, b.Kmag, tol, tol)
 }

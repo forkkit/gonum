@@ -14,17 +14,16 @@ import (
 
 	"gonum.org/v1/gonum/blas"
 	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/lapack"
 )
 
 const (
 	// dlamchE is the machine epsilon. For IEEE this is 2^{-53}.
-	dlamchE = 1.0 / (1 << 53)
+	dlamchE = 0x1p-53
 	dlamchB = 2
 	dlamchP = dlamchB * dlamchE
 	// dlamchS is the smallest normal number. For IEEE this is 2^{-1022}.
-	dlamchS = 1.0 / (1 << 256) / (1 << 256) / (1 << 256) / (1 << 254)
+	dlamchS = 0x1p-1022
 )
 
 func max(a, b int) int {
@@ -60,6 +59,67 @@ func (wl worklen) String() string {
 		return "optimum"
 	}
 	return ""
+}
+
+func normToString(norm lapack.MatrixNorm) string {
+	switch norm {
+	case lapack.MaxAbs:
+		return "MaxAbs"
+	case lapack.MaxRowSum:
+		return "MaxRowSum"
+	case lapack.MaxColumnSum:
+		return "MaxColSum"
+	case lapack.Frobenius:
+		return "Frobenius"
+	default:
+		panic("invalid norm")
+	}
+}
+
+func uploToString(uplo blas.Uplo) string {
+	switch uplo {
+	case blas.Lower:
+		return "Lower"
+	case blas.Upper:
+		return "Upper"
+	default:
+		panic("invalid uplo")
+	}
+}
+
+func diagToString(diag blas.Diag) string {
+	switch diag {
+	case blas.NonUnit:
+		return "NonUnit"
+	case blas.Unit:
+		return "Unit"
+	default:
+		panic("invalid diag")
+	}
+}
+
+func sideToString(side blas.Side) string {
+	switch side {
+	case blas.Left:
+		return "Left"
+	case blas.Right:
+		return "Right"
+	default:
+		panic("invalid side")
+	}
+}
+
+func transToString(trans blas.Transpose) string {
+	switch trans {
+	case blas.NoTrans:
+		return "NoTrans"
+	case blas.Trans:
+		return "Trans"
+	case blas.ConjTrans:
+		return "ConjTrans"
+	default:
+		panic("invalid trans")
+	}
 }
 
 // nanSlice allocates a new slice of length n filled with NaN.
@@ -130,34 +190,65 @@ func randomHessenberg(n, stride int, rnd *rand.Rand) blas64.General {
 // randomSchurCanonical returns a random, general matrix in Schur canonical
 // form, that is, block upper triangular with 1×1 and 2×2 diagonal blocks where
 // each 2×2 diagonal block has its diagonal elements equal and its off-diagonal
-// elements of opposite sign.
-func randomSchurCanonical(n, stride int, rnd *rand.Rand) blas64.General {
-	t := randomGeneral(n, n, stride, rnd)
-	// Zero out the lower triangle.
+// elements of opposite sign. bad controls whether the returned matrix will have
+// zero or tiny eigenvalues.
+func randomSchurCanonical(n, stride int, bad bool, rnd *rand.Rand) (t blas64.General, wr, wi []float64) {
+	t = randomGeneral(n, n, stride, rnd)
+	// Zero out the lower triangle including the diagonal which will be set later.
 	for i := 0; i < t.Rows; i++ {
-		for j := 0; j < i; j++ {
+		for j := 0; j <= i; j++ {
 			t.Data[i*t.Stride+j] = 0
 		}
 	}
 	// Randomly create 2×2 diagonal blocks.
 	for i := 0; i < t.Rows; {
-		if i == t.Rows-1 || rnd.Float64() < 0.5 {
-			// 1×1 block.
+		a := rnd.NormFloat64()
+		if bad && rnd.Float64() < 0.5 {
+			if rnd.Float64() < 0.5 {
+				// A quarter of real parts of eigenvalues will be tiny.
+				a = dlamchS
+			} else {
+				// A quarter of them will be zero.
+				a = 0
+			}
+		}
+
+		// A half of eigenvalues will be real.
+		if rnd.Float64() < 0.5 || i == t.Rows-1 {
+			// Store 1×1 block at the diagonal of T.
+			t.Data[i*t.Stride+i] = a
+			wr = append(wr, a)
+			wi = append(wi, 0)
 			i++
 			continue
 		}
-		// 2×2 block.
-		// Diagonal elements equal.
-		t.Data[(i+1)*t.Stride+i+1] = t.Data[i*t.Stride+i]
-		// Off-diagonal elements of opposite sign.
+
+		// Diagonal elements are equal.
+		d := a
+		// Element under the diagonal is "normal".
 		c := rnd.NormFloat64()
-		if math.Signbit(c) == math.Signbit(t.Data[i*t.Stride+i+1]) {
+		// Element above the diagonal cannot be zero.
+		var b float64
+		if bad && rnd.Float64() < 0.5 {
+			b = dlamchS
+		} else {
+			b = rnd.NormFloat64()
+		}
+		// Make sure off-diagonal elements are of opposite sign.
+		if math.Signbit(b) == math.Signbit(c) {
 			c *= -1
 		}
-		t.Data[(i+1)*t.Stride+i] = c
+
+		// Store 2×2 block at the diagonal of T.
+		t.Data[i*t.Stride+i], t.Data[i*t.Stride+i+1] = a, b
+		t.Data[(i+1)*t.Stride+i], t.Data[(i+1)*t.Stride+i+1] = c, d
+
+		wr = append(wr, a, a)
+		im := math.Sqrt(math.Abs(b)) * math.Sqrt(math.Abs(c))
+		wi = append(wi, im, -im)
 		i += 2
 	}
-	return t
+	return t, wr, wi
 }
 
 // blockedUpperTriGeneral returns a normal random, general matrix in the form
@@ -551,7 +642,7 @@ func constructQK(kind string, m, n, k int, a []float64, lda int, tau []float64) 
 	q := blas64.General{
 		Rows:   sz,
 		Cols:   sz,
-		Stride: sz,
+		Stride: max(1, sz),
 		Data:   make([]float64, sz*sz),
 	}
 	for i := 0; i < sz; i++ {
@@ -567,7 +658,7 @@ func constructQK(kind string, m, n, k int, a []float64, lda int, tau []float64) 
 		h := blas64.General{
 			Rows:   sz,
 			Cols:   sz,
-			Stride: sz,
+			Stride: max(1, sz),
 			Data:   make([]float64, sz*sz),
 		}
 		for j := 0; j < sz; j++ {
@@ -831,107 +922,6 @@ func printRowise(a []float64, m, n, lda int, beyond bool) {
 	}
 }
 
-// isOrthogonal returns whether a square matrix Q is orthogonal.
-func isOrthogonal(q blas64.General) bool {
-	n := q.Rows
-	if n != q.Cols {
-		panic("matrix not square")
-	}
-	// A real square matrix is orthogonal if and only if its rows form
-	// an orthonormal basis of the Euclidean space R^n.
-	const tol = 1e-13
-	for i := 0; i < n; i++ {
-		nrm := blas64.Nrm2(blas64.Vector{N: n, Data: q.Data[i*q.Stride:], Inc: 1})
-		if math.IsNaN(nrm) {
-			return false
-		}
-		if math.Abs(nrm-1) > tol {
-			return false
-		}
-		for j := i + 1; j < n; j++ {
-			dot := blas64.Dot(blas64.Vector{N: n, Data: q.Data[i*q.Stride:], Inc: 1},
-				blas64.Vector{N: n, Data: q.Data[j*q.Stride:], Inc: 1})
-			if math.IsNaN(dot) {
-				return false
-			}
-			if math.Abs(dot) > tol {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// hasOrthonormalColumns returns whether the columns of Q are orthonormal.
-func hasOrthonormalColumns(q blas64.General) bool {
-	m, n := q.Rows, q.Cols
-	if n > m {
-		// Wide matrix cannot have all columns orthogonal.
-		return false
-	}
-	ldq := q.Stride
-	const tol = 1e-13
-	for i := 0; i < n; i++ {
-		nrm := blas64.Nrm2(blas64.Vector{N: m, Data: q.Data[i:], Inc: ldq})
-		if math.IsNaN(nrm) {
-			return false
-		}
-		if math.Abs(nrm-1) > tol {
-			return false
-		}
-		for j := i + 1; j < n; j++ {
-			dot := blas64.Dot(blas64.Vector{N: m, Data: q.Data[i:], Inc: ldq},
-				blas64.Vector{N: m, Data: q.Data[j:], Inc: ldq})
-			if math.IsNaN(dot) {
-				return false
-			}
-			if math.Abs(dot) > tol {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// hasOrthonormalRows returns whether the rows of Q are orthonormal.
-func hasOrthonormalRows(q blas64.General) bool {
-	m, n := q.Rows, q.Cols
-	if m > n {
-		// Tall matrix cannot have all rows orthogonal.
-		return false
-	}
-	ldq := q.Stride
-	const tol = 1e-13
-	for i1 := 0; i1 < m; i1++ {
-		nrm := blas64.Nrm2(blas64.Vector{N: n, Data: q.Data[i1*ldq:], Inc: 1})
-		if math.IsNaN(nrm) {
-			return false
-		}
-		if math.Abs(nrm-1) > tol {
-			return false
-		}
-		for i2 := i1 + 1; i2 < m; i2++ {
-			dot := blas64.Dot(
-				blas64.Vector{N: n, Data: q.Data[i1*ldq:], Inc: 1},
-				blas64.Vector{N: n, Data: q.Data[i2*ldq:], Inc: 1})
-			if math.IsNaN(dot) {
-				return false
-			}
-			if math.Abs(dot) > tol {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// copyMatrix copies an m×n matrix src of stride n into an m×n matrix dst of stride ld.
-func copyMatrix(m, n int, dst []float64, ld int, src []float64) {
-	for i := 0; i < m; i++ {
-		copy(dst[i*ld:i*ld+n], src[i*n:i*n+n])
-	}
-}
-
 func copyGeneral(dst, src blas64.General) {
 	r := min(dst.Rows, src.Rows)
 	c := min(dst.Cols, src.Cols)
@@ -948,13 +938,14 @@ func cloneGeneral(a blas64.General) blas64.General {
 	return c
 }
 
-// equalApprox returns whether the matrices A and B of order n are approximately
-// equal within given tolerance.
-func equalApprox(m, n int, a []float64, lda int, b []float64, tol float64) bool {
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			diff := a[i*lda+j] - b[i*n+j]
-			if math.IsNaN(diff) || math.Abs(diff) > tol {
+// equalGeneral returns whether the general matrices a and b are equal.
+func equalGeneral(a, b blas64.General) bool {
+	if a.Rows != b.Rows || a.Cols != b.Cols {
+		panic("bad input")
+	}
+	for i := 0; i < a.Rows; i++ {
+		for j := 0; j < a.Cols; j++ {
+			if a.Data[i*a.Stride+j] != b.Data[i*b.Stride+j] {
 				return false
 			}
 		}
@@ -972,59 +963,6 @@ func equalApproxGeneral(a, b blas64.General, tol float64) bool {
 		for j := 0; j < a.Cols; j++ {
 			diff := a.Data[i*a.Stride+j] - b.Data[i*b.Stride+j]
 			if math.IsNaN(diff) || math.Abs(diff) > tol {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// equalApproxTriangular returns whether the triangular matrices A and B of
-// order n are approximately equal within given tolerance.
-func equalApproxTriangular(upper bool, n int, a []float64, lda int, b []float64, tol float64) bool {
-	if upper {
-		for i := 0; i < n; i++ {
-			for j := i; j < n; j++ {
-				diff := a[i*lda+j] - b[i*n+j]
-				if math.IsNaN(diff) || math.Abs(diff) > tol {
-					return false
-				}
-			}
-		}
-		return true
-	}
-	for i := 0; i < n; i++ {
-		for j := 0; j <= i; j++ {
-			diff := a[i*lda+j] - b[i*n+j]
-			if math.IsNaN(diff) || math.Abs(diff) > tol {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-//nolint:deadcode,unused
-func equalApproxSymmetric(a, b blas64.Symmetric, tol float64) bool {
-	if a.Uplo != b.Uplo {
-		return false
-	}
-	if a.N != b.N {
-		return false
-	}
-	if a.Uplo == blas.Upper {
-		for i := 0; i < a.N; i++ {
-			for j := i; j < a.N; j++ {
-				if !floats.EqualWithinAbsOrRel(a.Data[i*a.Stride+j], b.Data[i*b.Stride+j], tol, tol) {
-					return false
-				}
-			}
-		}
-		return true
-	}
-	for i := 0; i < a.N; i++ {
-		for j := 0; j <= i; j++ {
-			if !floats.EqualWithinAbsOrRel(a.Data[i*a.Stride+j], b.Data[i*b.Stride+j], tol, tol) {
 				return false
 			}
 		}
@@ -1112,7 +1050,7 @@ func extract2x2Block(t []float64, ldt int) (a, b, c, d float64) {
 // isSchurCanonical returns whether the 2×2 matrix [a b; c d] is in Schur
 // canonical form.
 func isSchurCanonical(a, b, c, d float64) bool {
-	return c == 0 || (a == d && math.Signbit(b) != math.Signbit(c))
+	return c == 0 || (b != 0 && a == d && math.Signbit(b) != math.Signbit(c))
 }
 
 // isSchurCanonicalGeneral returns whether T is block upper triangular with 1×1
@@ -1120,21 +1058,37 @@ func isSchurCanonical(a, b, c, d float64) bool {
 // checks only along the diagonal and the first subdiagonal, otherwise the lower
 // triangle is not accessed.
 func isSchurCanonicalGeneral(t blas64.General) bool {
-	if t.Rows != t.Cols {
+	n := t.Cols
+	if t.Rows != n {
 		panic("invalid matrix")
 	}
-	for i := 0; i < t.Rows-1; {
-		if t.Data[(i+1)*t.Stride+i] == 0 {
+	for j := 0; j < n-1; {
+		if t.Data[(j+1)*t.Stride+j] == 0 {
 			// 1×1 block.
-			i++
+			for i := j + 1; i < n; i++ {
+				if t.Data[i*t.Stride+j] != 0 {
+					return false
+				}
+			}
+			j++
 			continue
 		}
 		// 2×2 block.
-		a, b, c, d := extract2x2Block(t.Data[i*t.Stride+i:], t.Stride)
+		a, b, c, d := extract2x2Block(t.Data[j*t.Stride+j:], t.Stride)
 		if !isSchurCanonical(a, b, c, d) {
 			return false
 		}
-		i += 2
+		for i := j + 2; i < n; i++ {
+			if t.Data[i*t.Stride+j] != 0 {
+				return false
+			}
+		}
+		for i := j + 2; i < n; i++ {
+			if t.Data[i*t.Stride+j+1] != 0 {
+				return false
+			}
+		}
+		j += 2
 	}
 	return true
 }
@@ -1148,7 +1102,7 @@ func schurBlockEigenvalues(a, b, c, d float64) (ev1, ev2 complex128) {
 	if c == 0 {
 		return complex(a, 0), complex(d, 0)
 	}
-	im := math.Sqrt(-b * c)
+	im := math.Sqrt(math.Abs(b)) * math.Sqrt(math.Abs(c))
 	return complex(a, im), complex(a, -im)
 }
 
@@ -1249,135 +1203,6 @@ func unbalancedSparseGeneral(m, n, stride int, nonzeros int, rnd *rand.Rand) bla
 		}
 	}
 	return a
-}
-
-// columnOf returns a copy of the j-th column of a.
-func columnOf(a blas64.General, j int) []float64 {
-	if j < 0 || a.Cols <= j {
-		panic("bad column index")
-	}
-	col := make([]float64, a.Rows)
-	for i := range col {
-		col[i] = a.Data[i*a.Stride+j]
-	}
-	return col
-}
-
-// isRightEigenvectorOf returns whether the vector xRe+i*xIm, where i is the
-// imaginary unit, is the right eigenvector of A corresponding to the eigenvalue
-// lambda.
-//
-// A right eigenvector corresponding to a complex eigenvalue λ is a complex
-// non-zero vector x such that
-//  A x = λ x.
-func isRightEigenvectorOf(a blas64.General, xRe, xIm []float64, lambda complex128, tol float64) bool {
-	if a.Rows != a.Cols {
-		panic("matrix not square")
-	}
-
-	if imag(lambda) != 0 && xIm == nil {
-		// Complex eigenvalue of a real matrix cannot have a real
-		// eigenvector.
-		return false
-	}
-
-	n := a.Rows
-
-	// Compute A real(x) and store the result into xReAns.
-	xReAns := make([]float64, n)
-	blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{Data: xRe, Inc: 1}, 0, blas64.Vector{Data: xReAns, Inc: 1})
-
-	if imag(lambda) == 0 && xIm == nil {
-		// Real eigenvalue and eigenvector.
-
-		// Compute λx and store the result into lambdax.
-		lambdax := make([]float64, n)
-		floats.AddScaled(lambdax, real(lambda), xRe)
-
-		// This is expressed as the inverse to catch the case
-		// xReAns_i = Inf and lambdax_i = Inf of the same sign.
-		return !(floats.Distance(xReAns, lambdax, math.Inf(1)) > tol)
-	}
-
-	// Complex eigenvector, and real or complex eigenvalue.
-
-	// Compute A imag(x) and store the result into xImAns.
-	xImAns := make([]float64, n)
-	blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{Data: xIm, Inc: 1}, 0, blas64.Vector{Data: xImAns, Inc: 1})
-
-	// Compute λx and store the result into lambdax.
-	lambdax := make([]complex128, n)
-	for i := range lambdax {
-		lambdax[i] = lambda * complex(xRe[i], xIm[i])
-	}
-
-	for i, v := range lambdax {
-		ax := complex(xReAns[i], xImAns[i])
-		if cmplx.Abs(v-ax) > tol {
-			return false
-		}
-	}
-	return true
-}
-
-// isLeftEigenvectorOf returns whether the vector yRe+i*yIm, where i is the
-// imaginary unit, is the left eigenvector of A corresponding to the eigenvalue
-// lambda.
-//
-// A left eigenvector corresponding to a complex eigenvalue λ is a complex
-// non-zero vector y such that
-//  yᴴ A = λ yᴴ,
-// which is equivalent for real A to
-//  Aᵀ y = conj(λ) y,
-func isLeftEigenvectorOf(a blas64.General, yRe, yIm []float64, lambda complex128, tol float64) bool {
-	if a.Rows != a.Cols {
-		panic("matrix not square")
-	}
-
-	if imag(lambda) != 0 && yIm == nil {
-		// Complex eigenvalue of a real matrix cannot have a real
-		// eigenvector.
-		return false
-	}
-
-	n := a.Rows
-
-	// Compute Aᵀ real(y) and store the result into yReAns.
-	yReAns := make([]float64, n)
-	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{Data: yRe, Inc: 1}, 0, blas64.Vector{Data: yReAns, Inc: 1})
-
-	if imag(lambda) == 0 && yIm == nil {
-		// Real eigenvalue and eigenvector.
-
-		// Compute λy and store the result into lambday.
-		lambday := make([]float64, n)
-		floats.AddScaled(lambday, real(lambda), yRe)
-
-		// This is expressed as the inverse to catch the case
-		// yReAns_i = Inf and lambday_i = Inf of the same sign.
-		return !(floats.Distance(yReAns, lambday, math.Inf(1)) > tol)
-	}
-
-	// Complex eigenvector, and real or complex eigenvalue.
-
-	// Compute Aᵀ imag(y) and store the result into yImAns.
-	yImAns := make([]float64, n)
-	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{Data: yIm, Inc: 1}, 0, blas64.Vector{Data: yImAns, Inc: 1})
-
-	// Compute conj(λ)y and store the result into lambday.
-	lambda = cmplx.Conj(lambda)
-	lambday := make([]complex128, n)
-	for i := range lambday {
-		lambday[i] = lambda * complex(yRe[i], yIm[i])
-	}
-
-	for i, v := range lambday {
-		ay := complex(yReAns[i], yImAns[i])
-		if cmplx.Abs(v-ay) > tol {
-			return false
-		}
-	}
-	return true
 }
 
 // rootsOfUnity returns the n complex numbers whose n-th power is equal to 1.
@@ -1529,4 +1354,40 @@ func svdJobString(job lapack.SVDJob) string {
 		return "None"
 	}
 	return "unknown SVD job"
+}
+
+// residualOrthogonal returns the residual
+//  |I - Q * Qᵀ|  if m < n or (m == n and rowwise == true),
+//  |I - Qᵀ * Q|  otherwise.
+// It can be used to check that the matrix Q is orthogonal.
+func residualOrthogonal(q blas64.General, rowwise bool) float64 {
+	m, n := q.Rows, q.Cols
+	if m == 0 || n == 0 {
+		return 0
+	}
+	var transq blas.Transpose
+	if m < n || (m == n && rowwise) {
+		transq = blas.NoTrans
+	} else {
+		transq = blas.Trans
+	}
+	minmn := min(m, n)
+
+	// Set work = I.
+	work := blas64.Symmetric{
+		Uplo:   blas.Upper,
+		N:      minmn,
+		Data:   make([]float64, minmn*minmn),
+		Stride: minmn,
+	}
+	for i := 0; i < minmn; i++ {
+		work.Data[i*work.Stride+i] = 1
+	}
+
+	// Compute
+	//  work = work - Q * Qᵀ = I - Q * Qᵀ
+	// or
+	//  work = work - Qᵀ * Q = I - Qᵀ * Q
+	blas64.Syrk(transq, -1, q, 1, work)
+	return dlansy(lapack.MaxColumnSum, blas.Upper, work.N, work.Data, work.Stride)
 }

@@ -125,6 +125,7 @@ var aStarTests = []struct {
 }
 
 func TestAStar(t *testing.T) {
+	t.Parallel()
 	for _, test := range aStarTests {
 		pt, _ := AStar(simple.Node(test.s), simple.Node(test.t), test.g, test.heuristic)
 
@@ -153,6 +154,7 @@ func TestAStar(t *testing.T) {
 }
 
 func TestExhaustiveAStar(t *testing.T) {
+	t.Parallel()
 	g := simple.NewWeightedUndirectedGraph(0, math.Inf(1))
 	nodes := []locatedNode{
 		{id: 1, x: 0, y: 6},
@@ -192,8 +194,9 @@ func TestExhaustiveAStar(t *testing.T) {
 	}
 
 	ps := DijkstraAllPaths(g)
-	for _, start := range graph.NodesOf(g.Nodes()) {
-		for _, goal := range graph.NodesOf(g.Nodes()) {
+	ends := graph.NodesOf(g.Nodes())
+	for _, start := range ends {
+		for _, goal := range ends {
 			pt, _ := AStar(start, goal, g, heuristic)
 			gotPath, gotWeight := pt.To(goal.ID())
 			wantPath, wantWeight, _ := ps.Between(start.ID(), goal.ID())
@@ -244,6 +247,7 @@ func isMonotonic(g UndirectedWeightLister, h Heuristic) (ok bool, at graph.Edge,
 }
 
 func TestAStarNullHeuristic(t *testing.T) {
+	t.Parallel()
 	for _, test := range testgraphs.ShortestPathTests {
 		g := test.Graph()
 		for _, e := range test.Edges {
@@ -277,7 +281,7 @@ func TestAStarNullHeuristic(t *testing.T) {
 
 		p, weight := pt.To(test.Query.To().ID())
 		if weight != test.Weight {
-			t.Errorf("%q: unexpected weight from Between: got:%f want:%f",
+			t.Errorf("%q: unexpected weight from To: got:%f want:%f",
 				test.Name, weight, test.Weight)
 		}
 		if weight := pt.WeightTo(test.Query.To().ID()); weight != test.Weight {

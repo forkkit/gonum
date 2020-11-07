@@ -7,7 +7,7 @@ package quat
 import (
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 var invTests = []struct {
@@ -25,6 +25,7 @@ var invTests = []struct {
 }
 
 func TestInv(t *testing.T) {
+	t.Parallel()
 	const tol = 1e-14
 	for _, test := range invTests {
 		got := Mul(test.q, Inv(test.q))
@@ -34,7 +35,7 @@ func TestInv(t *testing.T) {
 			}
 			continue
 		}
-		if !(floats.EqualWithinAbsOrRel(got.Real, 1, tol, tol) && floats.EqualWithinAbsOrRel(Abs(got), 1, tol, tol)) {
+		if !(scalar.EqualWithinAbsOrRel(got.Real, 1, tol, tol) && scalar.EqualWithinAbsOrRel(Abs(got), 1, tol, tol)) {
 			t.Errorf("unexpected result for Mul(%v, Inv(%[1]v)): got:%v want:%v", test.q, got, Number{Real: 1})
 		}
 	}

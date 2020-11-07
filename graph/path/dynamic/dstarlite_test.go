@@ -26,6 +26,7 @@ var (
 )
 
 func TestDStarLiteNullHeuristic(t *testing.T) {
+	t.Parallel()
 	for _, test := range testgraphs.ShortestPathTests {
 		// Skip zero-weight cycles.
 		if strings.HasPrefix(test.Name, "zero-weight") {
@@ -400,9 +401,10 @@ var dynamicDStarLiteTests = []struct {
 			l.Known[l.NodeAt(wallRow, wallCol).ID()] = false
 
 			// Check we have a correctly modified representation.
-			for _, u := range graph.NodesOf(l.Nodes()) {
+			nodes := graph.NodesOf(l.Nodes())
+			for _, u := range nodes {
 				uid := u.ID()
-				for _, v := range graph.NodesOf(l.Nodes()) {
+				for _, v := range nodes {
 					vid := v.ID()
 					if l.HasEdgeBetween(uid, vid) != l.Grid.HasEdgeBetween(uid, vid) {
 						ur, uc := l.RowCol(uid)
@@ -552,6 +554,7 @@ var dynamicDStarLiteTests = []struct {
 }
 
 func TestDStarLiteDynamic(t *testing.T) {
+	t.Parallel()
 	for i, test := range dynamicDStarLiteTests {
 		for _, remember := range test.remember {
 			l := &testgraphs.LimitedVisionGrid{

@@ -14,6 +14,7 @@ import (
 )
 
 func TestNewVecDense(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		n      int
 		data   []float64
@@ -57,6 +58,7 @@ func TestNewVecDense(t *testing.T) {
 }
 
 func TestCap(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		vector *VecDense
 		want   int
@@ -121,6 +123,7 @@ func TestCap(t *testing.T) {
 }
 
 func TestVecDenseAtSet(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		vector *VecDense
 	}{
@@ -182,6 +185,7 @@ func TestVecDenseAtSet(t *testing.T) {
 }
 
 func TestVecDenseZero(t *testing.T) {
+	t.Parallel()
 	// Elements that equal 1 should be set to zero, elements that equal -1
 	// should remain unchanged.
 	for _, test := range []*VecDense{
@@ -214,6 +218,7 @@ func TestVecDenseZero(t *testing.T) {
 }
 
 func TestVecDenseMul(t *testing.T) {
+	t.Parallel()
 	method := func(receiver, a, b Matrix) {
 		type mulVecer interface {
 			MulVec(a Matrix, b Vector)
@@ -237,6 +242,7 @@ func TestVecDenseMul(t *testing.T) {
 }
 
 func TestVecDenseScale(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		a     Vector
 		alpha float64
@@ -311,6 +317,7 @@ func TestVecDenseScale(t *testing.T) {
 }
 
 func TestCopyVec(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		src   *VecDense
 		dst   *VecDense
@@ -337,6 +344,7 @@ func TestCopyVec(t *testing.T) {
 }
 
 func TestVecDenseAddScaled(t *testing.T) {
+	t.Parallel()
 	for _, alpha := range []float64{0, 1, -1, 2.3, -2.3} {
 		method := func(receiver, a, b Matrix) {
 			type addScaledVecer interface {
@@ -355,6 +363,7 @@ func TestVecDenseAddScaled(t *testing.T) {
 }
 
 func TestVecDenseAdd(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		a, b Vector
 		want *VecDense
@@ -384,6 +393,7 @@ func TestVecDenseAdd(t *testing.T) {
 }
 
 func TestVecDenseSub(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		a, b Vector
 		want *VecDense
@@ -413,6 +423,7 @@ func TestVecDenseSub(t *testing.T) {
 }
 
 func TestVecDenseMulElem(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		a, b Vector
 		want *VecDense
@@ -442,6 +453,7 @@ func TestVecDenseMulElem(t *testing.T) {
 }
 
 func TestVecDenseDivElem(t *testing.T) {
+	t.Parallel()
 	for i, test := range []struct {
 		a, b Vector
 		want *VecDense
@@ -486,8 +498,9 @@ func BenchmarkAddScaledVec1000Inc20(b *testing.B)   { addScaledVecBench(b, 1000,
 func BenchmarkAddScaledVec10000Inc20(b *testing.B)  { addScaledVecBench(b, 10000, 20) }
 func BenchmarkAddScaledVec100000Inc20(b *testing.B) { addScaledVecBench(b, 100000, 20) }
 func addScaledVecBench(b *testing.B, size, inc int) {
-	x := randVecDense(size, inc, 1, rand.NormFloat64)
-	y := randVecDense(size, inc, 1, rand.NormFloat64)
+	src := rand.NewSource(1)
+	x := randVecDense(size, inc, 1, src)
+	y := randVecDense(size, inc, 1, src)
 	b.ResetTimer()
 	var v VecDense
 	for i := 0; i < b.N; i++ {
@@ -511,7 +524,8 @@ func BenchmarkScaleVec1000Inc20(b *testing.B)   { scaleVecBench(b, 1000, 20) }
 func BenchmarkScaleVec10000Inc20(b *testing.B)  { scaleVecBench(b, 10000, 20) }
 func BenchmarkScaleVec100000Inc20(b *testing.B) { scaleVecBench(b, 100000, 20) }
 func scaleVecBench(b *testing.B, size, inc int) {
-	x := randVecDense(size, inc, 1, rand.NormFloat64)
+	src := rand.NewSource(1)
+	x := randVecDense(size, inc, 1, src)
 	b.ResetTimer()
 	var v VecDense
 	for i := 0; i < b.N; i++ {
@@ -535,8 +549,9 @@ func BenchmarkAddVec1000Inc20(b *testing.B)   { addVecBench(b, 1000, 20) }
 func BenchmarkAddVec10000Inc20(b *testing.B)  { addVecBench(b, 10000, 20) }
 func BenchmarkAddVec100000Inc20(b *testing.B) { addVecBench(b, 100000, 20) }
 func addVecBench(b *testing.B, size, inc int) {
-	x := randVecDense(size, inc, 1, rand.NormFloat64)
-	y := randVecDense(size, inc, 1, rand.NormFloat64)
+	src := rand.NewSource(1)
+	x := randVecDense(size, inc, 1, src)
+	y := randVecDense(size, inc, 1, src)
 	b.ResetTimer()
 	var v VecDense
 	for i := 0; i < b.N; i++ {
@@ -560,8 +575,9 @@ func BenchmarkSubVec1000Inc20(b *testing.B)   { subVecBench(b, 1000, 20) }
 func BenchmarkSubVec10000Inc20(b *testing.B)  { subVecBench(b, 10000, 20) }
 func BenchmarkSubVec100000Inc20(b *testing.B) { subVecBench(b, 100000, 20) }
 func subVecBench(b *testing.B, size, inc int) {
-	x := randVecDense(size, inc, 1, rand.NormFloat64)
-	y := randVecDense(size, inc, 1, rand.NormFloat64)
+	src := rand.NewSource(1)
+	x := randVecDense(size, inc, 1, src)
+	y := randVecDense(size, inc, 1, src)
 	b.ResetTimer()
 	var v VecDense
 	for i := 0; i < b.N; i++ {
@@ -569,14 +585,15 @@ func subVecBench(b *testing.B, size, inc int) {
 	}
 }
 
-func randVecDense(size, inc int, rho float64, rnd func() float64) *VecDense {
+func randVecDense(size, inc int, rho float64, src rand.Source) *VecDense {
 	if size <= 0 {
 		panic("bad vector size")
 	}
+	rnd := rand.New(src)
 	data := make([]float64, size*inc)
 	for i := range data {
-		if rand.Float64() < rho {
-			data[i] = rnd()
+		if rnd.Float64() < rho {
+			data[i] = rnd.NormFloat64()
 		}
 	}
 	return &VecDense{
@@ -593,7 +610,8 @@ func BenchmarkVectorSum100000(b *testing.B) { vectorSumBench(b, 100000) }
 var vectorSumForBench float64
 
 func vectorSumBench(b *testing.B, size int) {
-	a := randVecDense(size, 1, 1.0, rand.NormFloat64)
+	src := rand.NewSource(1)
+	a := randVecDense(size, 1, 1.0, src)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		vectorSumForBench = Sum(a)

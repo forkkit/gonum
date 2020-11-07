@@ -5,7 +5,6 @@
 package path
 
 import (
-	"fmt"
 	"math"
 	"testing"
 
@@ -13,14 +12,15 @@ import (
 	"gonum.org/v1/gonum/graph/simple"
 )
 
-func init() {
+func TestVerifySpanningTreeTests(t *testing.T) {
+	t.Parallel()
 	for _, test := range spanningTreeTests {
 		var w float64
 		for _, e := range test.treeEdges {
 			w += e.W
 		}
 		if w != test.want {
-			panic(fmt.Sprintf("bad test: %s weight mismatch: %v != %v", test.name, w, test.want))
+			t.Fatalf("bad test: %s weight mismatch: %v != %v", test.name, w, test.want)
 		}
 	}
 }
@@ -282,12 +282,14 @@ func testMinumumSpanning(mst func(dst WeightedBuilder, g spanningGraph) float64,
 }
 
 func TestKruskal(t *testing.T) {
+	t.Parallel()
 	testMinumumSpanning(func(dst WeightedBuilder, g spanningGraph) float64 {
 		return Kruskal(dst, g)
 	}, t)
 }
 
 func TestPrim(t *testing.T) {
+	t.Parallel()
 	testMinumumSpanning(func(dst WeightedBuilder, g spanningGraph) float64 {
 		return Prim(dst, g)
 	}, t)

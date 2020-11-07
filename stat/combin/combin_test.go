@@ -9,8 +9,9 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"unsafe"
 
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 // intSosMatch returns true if the two slices of slices are equal.
@@ -81,7 +82,12 @@ func TestBinomial(t *testing.T) {
 		}
 	}
 	var (
-		n    = 61
+		// Ensure that we have enough space to represent results.
+		// TODO(kortschak): Replace the unsafe.Sizeof(int(0)) expression with
+		// sizeof.Int if https://github.com/golang/go/issues/29982 is
+		// implemented. See also https://github.com/golang/go/issues/40168.
+		n = int(unsafe.Sizeof(int(0))*8 - 3)
+
 		want big.Int
 		got  big.Int
 	)
@@ -97,7 +103,7 @@ func TestBinomial(t *testing.T) {
 func TestGeneralizedBinomial(t *testing.T) {
 	for cas, test := range binomialTests {
 		ans := GeneralizedBinomial(float64(test.n), float64(test.k))
-		if !floats.EqualWithinAbsOrRel(ans, float64(test.ans), 1e-14, 1e-14) {
+		if !scalar.EqualWithinAbsOrRel(ans, float64(test.ans), 1e-14, 1e-14) {
 			t.Errorf("Case %v: Binomial mismatch. Got %v, want %v.", cas, ans, test.ans)
 		}
 	}
